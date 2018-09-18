@@ -1,101 +1,73 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define SIZE 10
-#define MAGIC_NUMBER 20180907
 
 // Some kind of atempt at a hashing function...
 int elementValue(int x, int y)
 {
-  return ((x*x*x + y*y + MAGIC_NUMBER) % (4*SIZE*SIZE));
+  return (x + y*SIZE);
 }
 
 int main()
 {
   // Instantiate stuff
-  int matrix[SIZE][SIZE];
-  FILE *mFile;
+  int x, y; 
+  size_t im, ie;
+  bool allEqual;
+
+  int * entries = (int*) malloc(sizeof(int) * SIZE*SIZE);
+  int ** matrix = (int**) malloc(sizeof(int*) * SIZE);
+
+  int * fileEntries = (int*) malloc(sizeof(int) * SIZE*SIZE);
+  int ** fileMatrix = (int**) malloc(sizeof(int*) * SIZE);
+
+  for(im = 0, ie = 0; im < SIZE; ++im, ie+=SIZE)
+  {
+    matrix[im] = entries + ie;
+    fileMatrix[im] = fileEntries + ie;
+  }
 
   // File name
-  const char * matrixFilename = "matrix.csv";
-  
-  // Max number of characters needed to represent the matrix elements.
-  int longestNumber = 3;  
-    
-  // Populate the matrix with values.
-  // Important to keep track of which index is for rows and which is for
-  // columns. As implemented: i = y, j = x.
-  puts("Creating matrix..");
-  for(int i = 0; i < SIZE; i++)
-    for(int j = 0; j < SIZE; j++)
-      {
-	matrix[j][i] = elementValue(j,i);
-	//printf("(%i,%i): %i\n", j, i, matrix[i][j]);
-      }
-  
-  // Write the matrix to file.
-  // This could be done in the loop above but this way is more explicit.
-  puts("Writing to file...");
-  mFile = fopen(matrixFilename, "w+");
-  for(int i = 0; i < SIZE; i++)
-  {
-    for(int j = 0; j < SIZE; j++)
-      {
-	// Write element to file
-	fprintf(mFile, "%i", matrix[j][i]);
-	
-	// Add commas for all but last column
-	if(j != SIZE-1)
-	  fputs(",", mFile);
-      }
+  FILE *mFile;
+  const char * matrixFilename = "matrix.dat";
 
-    // Add newline char for all but last row
-    if(i != SIZE-1)
-      fputs("\n", mFile);
+  puts("Creating matrix values");
+  for(y = 0; y < SIZE; ++y)
+  {
+    for(x = 0; x < SIZE; ++x)
+    {
+      matrix[y][x] = y;
+    }
   }
 
+  puts("Writing matrix to file");
+  mFile = fopen(matrixFilename, "wb+");
+  fwrite((void*)entries, sizeof(entries[0]), (size_t)SIZE*SIZE, mFile);
 
-  // Compare matrix in memory to matrix on file
-  puts("Comparing matrices...");
+  puts("Reading matrix from file");
   rewind(mFile);
-  int c;
-  int n = 0, x = 0, y = 0;
-  char valc[4];
-  int read_matrix[SIZE][SIZE];
-  
-  while((c = getc(mFile)) != EOF)
+  fread((void*)fileEntries, sizeof(fileEntries[0]), (size_t)SIZE*SIZE, mFile);
+
+  puts("Compairing results");
+  allEqual = true;
+  fileMatrix[2][4] = 0;
+  for(y = 0; y < SIZE; ++y)
   {
-    //putchar((char)c);
-    if((char)c == ',')
+    for(x = 0; x < SIZE; ++x)
     {
-      x++; valc[n] = '\0'; n = 0;
-      read_matrix[x][y] = (int)strtol(valc, NULL, 10);
-      //puts(valc);
+      if(matrix[y][x] != fileMatrix[y][x])
+        {allEqual = false; break;}
     }
-    else if((char)c == '\n')
-    {
-      y++; x = 0; valc[n] = '\0'; n = 0;
-      read_matrix[x][y] = (int)strtol(valc, &valc[3], 10);
-    }
-    else
-    {
-      valc[n++] = (char)c;
-    }
-    
   }
 
-  
-  for(int i = 0; i < SIZE; i++)
-  {
-    for(int j = 0; j < SIZE; j++)
-    {
-      // Write element to file
-      printf("%i:%i\n", matrix[j][i], read_matrix[j][i]);
-    }
-  }
-  
-  // Clean up
+  if(allEqual)
+    puts("MATRICES MATCH!");
+  else
+    puts("MATRICES DO NOT MATCH!");
+
   fclose(mFile);
   
   puts("All done!");
