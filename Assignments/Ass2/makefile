@@ -1,5 +1,5 @@
 CC	= gcc
-CFLAGS 	+= -Wall -march=native -O3
+CFLAGS 	+= -lm -Wall -march=native -O3
 DBFLAGS	= -pg -fprofile-arcs -ftest-coverage
 SRCS	= newton.c
 DEPS 	?= newton.h
