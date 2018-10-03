@@ -16,7 +16,7 @@ struct Colour{
 int nbrOfThreads, dimensions, degree, blockSize;  
 
 void computeRow(int **rootMatrix, int **iterMatrix, int rowIndex, struct CpxNbr *roots) {
-
+,
 }
   
 void writeRow(FILE *rootFile, FILE *iterFile, int *rootRow, int *iterRow, struct Colour *rootColours) {
