@@ -1,5 +1,5 @@
 CC	= gcc
-CFLAGS 	+= -lm -Wall -march=native -O3
+CFLAGS 	+= -std=gnu11 -lm -lpthread -Wall -march=native -O3
 DBFLAGS	= -pg -fprofile-arcs -ftest-coverage
 SRCS	= newton.c
 DEPS 	?= newton.h
@@ -13,3 +13,6 @@ $(TARGS): $(OBJS)
 
 $(OBJS): $(SRCS)
 	$(CC) $(CFLAGS) -c -o $@ $^
+test: newton
+	make
+	./newton -t5 -l100 5
