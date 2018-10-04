@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <pthread.h>
+#include <errno.h>
 
 #define WHITE_ITERATION_COUNT 20
 #define RANGE 2.f
@@ -43,6 +44,8 @@ void findRoot(int rowIndex, int colIndex) {
   struct Complex x;
   int i;
   
+  //printf("Finding roots...\n");
+  
   x.re = -RANGE + (2.f*RANGE)/((float)(dimensions-1))*colIndex;
   x.im =  RANGE - (2.f*RANGE)/((float)(dimensions-1))*rowIndex;
   
@@ -81,37 +84,59 @@ void findRoot(int rowIndex, int colIndex) {
   float bestDist = 1e10;
   for (i=0; i < degree; ++i) {
     float newDist = (x.re-exactRoots[i].re)*(x.re-exactRoots[i].re) + (x.im-exactRoots[i].im)*(x.im-exactRoots[i].im);
-          printf("new dist! %f", newDist);
+          //printf("new dist! %f\n", newDist);
     if (newDist < bestDist) {
-      printf("best dist! %f", newDist);
+      //printf("best dist! %f\n", newDist);
       bestInd = i;
       bestDist = newDist;
     }
   }
-  printf("%d", bestInd);
+  //printf("%d", bestInd);
   rootMatrix[rowIndex][colIndex] = bestInd;
 }
 
 
 void newton(void * restrict arg) {
+  //printf("New thread started!\n");
   int startPoint = ((int*)arg)[0];
   int nbrOfElements = ((int*)arg)[1];
   int rowIndex = ((int*)arg)[2];
+  
+  //printf("arg[0] = %d, arg[1] = %d, arg[2] = %d\n", 
+  //       ((int*)arg)[0], ((int*)arg)[1] ,((int*)arg)[2]);
+  
   for(int i = 0; i < nbrOfElements; ++i) {
+    //printf("Calling solver...\n");
     findRoot(rowIndex, startPoint+i);
   }
 } 
 
 void computeRow(int **rootMatrix, int **iterMatrix, 
                 int rowIndex, struct Complex *roots) {
-  int ret = 0;
+  unsigned int ret = 0;
   pthread_t threads[nbrOfThreads];
-  for (int tx=0, ix=0; tx < nbrOfThreads; ++tx, ix+=blockSize) {
+  
+  //printf("blockSize = %d\n", blockSize);
+  for (size_t tx=0, ix=0; tx < nbrOfThreads; ++tx, ix+=blockSize) {
     int *arg = malloc(3*sizeof(int));
     arg[0] = ix; 
     arg[1] = min(blockSize,dimensions-ix); 
     arg[2] = rowIndex;
-    if (ret = pthread_create(threads+tx, NULL, newton, (void*)arg)) {
+    //printf("BS: %d, d-ix: %d\n", blockSize, dimensions - ix);
+    ret = pthread_create(threads+tx, NULL, newton, (void*)arg);
+    int errorval = errno;
+    if (ret) {
+      switch (errno) {
+        case EAGAIN:
+          printf("Error EAGAIN\n");
+        case EPERM:
+          printf("Error EPERM\n");
+        case EINVAL:
+          printf("Error EINVAL\n");
+        default:
+          printf("Error kiss\n");
+      }
+            
       printf("Error creating thread: %\n", ret);
       exit(1);
     }
@@ -188,18 +213,25 @@ int main(int argc, char *argv[]) {
   iterFile = fopen("iterImage.ppm","w");  
   fprintf(rootFile,"P3\n%d %d\n255\n", dimensions, dimensions);
   fprintf(iterFile,"P2\n%d %d\n%d\n", dimensions, dimensions, WHITE_ITERATION_COUNT);  
+  blockSize = dimensions/nbrOfThreads + 1;
 
   for (i = 0; i < dimensions; i++) {
     computeRow(rootMatrix, iterMatrix, i, exactRoots);
-    writeRow(rootFile, iterFile, rootMatrix[i], iterMatrix[i], rootColours);    
+    writeRow(rootFile, iterFile, rootMatrix[i], iterMatrix[i], rootColours);
+    //if (i % 10 == 0) {
+      printf("\rDone: %d %%  ", (i*100)/dimensions + 1);
+      fflush(stdin);
+    //}
   }
-   
+  puts("");
 
+  puts("Freeing memory...");
   free(rootMatrix);
   free(rootMatrixValues);
   free(iterMatrix);
   free(iterMatrixValues);
   
+  puts("Closing files...");
   fclose(rootFile);
   fclose(iterFile);
   
