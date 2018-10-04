@@ -200,9 +200,9 @@ int main(int argc, char *argv[]) {
   }
   for (i = 0; i < degree; ++i) {
     int val = 255*i / degree;
-    rootColours[i].r = val;
-    rootColours[i].g = val;
-    rootColours[i].b = val;
+    rootColours[i].r = (val)%256;
+    rootColours[i].g = (val+85)%256;
+    rootColours[i].b = (val+145)%256;
   }
      
   printf("Starting...\n");
