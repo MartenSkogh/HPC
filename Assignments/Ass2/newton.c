@@ -4,8 +4,9 @@
 #include <math.h>
 #include <pthread.h>
 #include <errno.h>
+#include <time.h>
 
-#define WHITE_ITERATION_COUNT 20
+#define WHITE_ITERATION_COUNT 50
 #define RANGE 2.f
 #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -24,6 +25,7 @@ struct Colour {
   
 int nbrOfThreads, dimensions, degree, blockSize;
 int **rootMatrix, **iterMatrix;
+int *rowDone; // 0 untouched, 1 inprogress, 2 done
 struct Complex *exactRoots;
 struct Colour *rootColours;
 
@@ -84,9 +86,7 @@ void findRoot(int rowIndex, int colIndex) {
   float bestDist = 1e10;
   for (i=0; i < degree; ++i) {
     float newDist = (x.re-exactRoots[i].re)*(x.re-exactRoots[i].re) + (x.im-exactRoots[i].im)*(x.im-exactRoots[i].im);
-          //printf("new dist! %f\n", newDist);
     if (newDist < bestDist) {
-      //printf("best dist! %f\n", newDist);
       bestInd = i;
       bestDist = newDist;
     }
@@ -96,34 +96,34 @@ void findRoot(int rowIndex, int colIndex) {
 }
 
 
-void newton(void * restrict arg) {
-  //printf("New thread started!\n");
-  int startPoint = ((int*)arg)[0];
-  int nbrOfElements = ((int*)arg)[1];
-  int rowIndex = ((int*)arg)[2];
-  
-  //printf("arg[0] = %d, arg[1] = %d, arg[2] = %d\n", 
-  //       ((int*)arg)[0], ((int*)arg)[1] ,((int*)arg)[2]);
-  
-  for(int i = 0; i < nbrOfElements; ++i) {
-    //printf("Calling solver...\n");
-    findRoot(rowIndex, startPoint+i);
+void * computeRows(void *args) {
+  int startRow = ((int*)args)[0];
+  printf("New thread started on row %d!\n", startRow);
+  for(int row = startRow; row < dimensions; ++row) {
+    //printf("Checking row %d", row);
+    if (rowDone[row] != 0)
+      continue;
+    printf("Started work on row %d...\n", row);
+    rowDone[row] = 1;
+    for(int column = 0; column < dimensions; ++column) {
+      //printf("Calling solver...\n");
+      findRoot(row, column);
+    }
+    rowDone[row] = 2;
+    printf("setting row %d to %d\n", row, rowDone[row]);
   }
+  return NULL;
 } 
 
-void computeRow(int **rootMatrix, int **iterMatrix, 
-                int rowIndex, struct Complex *roots) {
+void runWorkerThreads() {
   unsigned int ret = 0;
   pthread_t threads[nbrOfThreads];
   
   //printf("blockSize = %d\n", blockSize);
-  for (size_t tx=0, ix=0; tx < nbrOfThreads; ++tx, ix+=blockSize) {
-    int *arg = malloc(3*sizeof(int));
-    arg[0] = ix; 
-    arg[1] = min(blockSize,dimensions-ix); 
-    arg[2] = rowIndex;
-    //printf("BS: %d, d-ix: %d\n", blockSize, dimensions - ix);
-    ret = pthread_create(threads+tx, NULL, newton, (void*)arg);
+  for (size_t tx=0; tx < nbrOfThreads; ++tx) {
+    int* arg = (int*)malloc(sizeof(int));
+    arg[0] = tx;
+    ret = pthread_create(threads+tx, NULL, computeRows, (void*)arg);
     int errorval = errno;
     if (ret) {
       switch (errno) {
@@ -141,27 +141,43 @@ void computeRow(int **rootMatrix, int **iterMatrix,
       exit(1);
     }
   }
-  for (int tx=0; tx < nbrOfThreads; ++tx) {
-    if (ret = pthread_join(threads[tx], NULL)) {
-      printf("Error joining thread: %\n", ret);
-      exit(1);
-    }
-  }
 }
   
-void writeRow(FILE *rootFile, FILE *iterFile, int *rootRow, int *iterRow, struct Colour *rootColours) {
-  for (int i = 0; i < dimensions; ++i){
-    struct Colour colour = rootColours[rootRow[i]];
-    //printf("%d %d %d ", colour.r, colour.g, colour.b);
-    //printf("%d ", iterRow[i]);
-    fprintf(rootFile, "%d %d %d ", colour.r, colour.g, colour.b);
-    fprintf(iterFile, "%d ", iterRow[i]);
+void * writeRows(void *args) {
+  puts("Initializing files...");
+  FILE *rootFile;
+  FILE *iterFile;
+  char rootFileName[40];
+  char iterFileName[40];
+  sprintf(rootFileName, "newton_attractors_x%d.ppm", degree);
+  sprintf(iterFileName, "newton_convergence_x%d.ppm",degree);
+  rootFile = fopen(rootFileName,"w");
+  iterFile = fopen(iterFileName,"w");  
+  fprintf(rootFile,"P3\n%d %d\n255\n", dimensions, dimensions);
+  fprintf(iterFile,"P3\n%d %d\n%d\n", dimensions, dimensions, WHITE_ITERATION_COUNT);  
+  
+  int row = 0;
+  struct timespec sleepTime = {0, 1000};
+  while (row < dimensions) {
+    if (rowDone[row] != 2) {
+      nanosleep(&sleepTime, NULL);
+      continue;
+    }
+    puts("spam");
+    for (int column = 0; column < dimensions; ++column) {
+      struct Colour colour = rootColours[rootMatrix[row][column]];
+      fprintf(rootFile, "%d %d %d ", colour.r, colour.g, colour.b);
+      fprintf(iterFile, "%d %d %d ", iterMatrix[row][column], iterMatrix[row][column], iterMatrix[row][column]);
+    }
+    fprintf(rootFile, "\n");
+    fprintf(iterFile, "\n");
+    ++row;
   }
-  fprintf(rootFile, "\n");
-  fprintf(iterFile, "\n");
+  
+  puts("Closing files...");
+  fclose(rootFile);
+  fclose(iterFile);
 }
-
- 
 
 int main(int argc, char *argv[]) {
   size_t i, j;
@@ -180,7 +196,7 @@ int main(int argc, char *argv[]) {
   printf("l: %d\n",dimensions);
   printf("t: %d\n",nbrOfThreads);
   
-
+  puts("Initializing stuffs...");
   rootMatrix = (int**)malloc(sizeof(int*)*dimensions);
   int *rootMatrixValues = (int*)malloc(sizeof(int)*dimensions*dimensions); 
   iterMatrix = (int**)malloc(sizeof(int*)*dimensions);
@@ -191,52 +207,51 @@ int main(int argc, char *argv[]) {
   }
   
   exactRoots = (struct Complex*)malloc(sizeof(struct Complex)*degree);
-  rootColours = (struct Colour*)malloc(sizeof(struct Colour)*degree);
   for (i = 0; i < degree; ++i) {
     float k = ((float)i)/((float)degree); 
     exactRoots[i].re = cosf(2*M_PI*k);
     exactRoots[i].im = sinf(2*M_PI*k);
     printf("ROOTS. BLOODY ROOOOOOOTS: (%f,%fi)\n",exactRoots[i].re,exactRoots[i].im);
   }
+  
+  rootColours = (struct Colour*)malloc(sizeof(struct Colour)*degree);
   for (i = 0; i < degree; ++i) {
     int val = 255*i / degree;
     rootColours[i].r = (val)%256;
     rootColours[i].g = (val+85)%256;
     rootColours[i].b = (val+145)%256;
   }
-     
-  printf("Starting...\n");
-  FILE *rootFile;
-  FILE *iterFile;
-  char rootFileName[40];
-  char iterFileName[40];
-  sprintf(rootFileName, "newton_attractors_x%d.ppm", degree);
-  sprintf(iterFileName, "newton_convergence_x%d.ppm",degree);
-  rootFile = fopen(rootFileName,"w");
-  iterFile = fopen(iterFileName,"w");  
-  fprintf(rootFile,"P3\n%d %d\n255\n", dimensions, dimensions);
-  fprintf(iterFile,"P2\n%d %d\n%d\n", dimensions, dimensions, WHITE_ITERATION_COUNT);  
-  blockSize = dimensions/nbrOfThreads + 1;
-
-  for (i = 0; i < dimensions; i++) {
-    computeRow(rootMatrix, iterMatrix, i, exactRoots);
-    writeRow(rootFile, iterFile, rootMatrix[i], iterMatrix[i], rootColours);
-    //if (i % 10 == 0) {
-      printf("\rDone: %d %%  ", (i*100)/dimensions + 1);
-      fflush(stdin);
-    //}
+  
+  rowDone = (int*) malloc(sizeof(int)*dimensions);
+  for (i = 0; i < degree; ++i) {
+    rowDone[i] = 0;
   }
-  puts("");
+
+  printf("Starting...\n");
+  
+  runWorkerThreads();
+  
+  // create writer thread
+  pthread_t writerThread;
+  int ret = 0;
+  if (ret = pthread_create(&writerThread, NULL, writeRows, NULL)) {
+    printf("Error creating thread: %\n", ret);
+    exit(1);
+  }
+
+  if (ret = pthread_join(writerThread, NULL)) {
+    printf("Error joining thread: %\n", ret);
+    exit(1);
+  }
 
   puts("Freeing memory...");
   free(rootMatrix);
   free(rootMatrixValues);
   free(iterMatrix);
   free(iterMatrixValues);
-  
-  puts("Closing files...");
-  fclose(rootFile);
-  fclose(iterFile);
+  free(exactRoots);
+  free(rootColours);
+  free(rowDone);
   
   printf("Finished!\n");
   return 0;
