@@ -208,9 +208,12 @@ int main(int argc, char *argv[]) {
   printf("Starting...\n");
   FILE *rootFile;
   FILE *iterFile;
-  
-  rootFile = fopen("rootImage.ppm","w");
-  iterFile = fopen("iterImage.ppm","w");  
+  char rootFileName[40];
+  char iterFileName[40];
+  sprintf(rootFileName, "newton_attractors_x%d.ppm", degree);
+  sprintf(iterFileName, "newton_convergence_x%d.ppm",degree);
+  rootFile = fopen(rootFileName,"w");
+  iterFile = fopen(iterFileName,"w");  
   fprintf(rootFile,"P3\n%d %d\n255\n", dimensions, dimensions);
   fprintf(iterFile,"P2\n%d %d\n%d\n", dimensions, dimensions, WHITE_ITERATION_COUNT);  
   blockSize = dimensions/nbrOfThreads + 1;

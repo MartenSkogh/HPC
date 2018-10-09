@@ -20,4 +20,9 @@ test: newton
 clean: 
 	rm *.o
 	rm newton
-
+testRun :
+	rm -rf pictures
+	rm -rf extracted
+	rm -rf reports
+	tar -czvf newton.tar.gz ./newton.c ./makefile ./report.md
+	/home/hpc2018/a2_grading/check_submission.py newton.tar.gz
