@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <time.h>
+#include <stdatomic.h>
 
 #define WHITE_ITERATION_COUNT 50
 #define RANGE 2.f
@@ -30,7 +31,8 @@ int **rootMatrix, **iterMatrix;
 int *rowDone; // 0 untouched, 1 inprogress, 2 done
 struct Complex *exactRoots;
 struct Colour *rootColours;
-int nbrRowsCompleted = 0;
+atomic_int nbrRowsCompleted = 0;
+atomic_int nbrRowsWritten = 0;
 
 // OPTIMIZE IN CASE OF GERMAN
 // Compelx multiplicaion of two complex numbers
@@ -116,7 +118,8 @@ void * computeRows(void *args) {
       findRoot(row, column);
     }
     rowDone[row] = 2;
-    nbrRowsCompleted += 1;
+    if(PROGRESS)
+      nbrRowsCompleted += 1;
     if(DEBUG)
       printf("setting row %d to %d\n", row, rowDone[row]);
   }
