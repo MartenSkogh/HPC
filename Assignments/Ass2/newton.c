@@ -12,8 +12,8 @@
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
-#define DEBUG 1
-
+#define DEBUG 0
+#define PROGRESS 1
 
 // Complex number
 struct Complex {
@@ -30,7 +30,7 @@ int **rootMatrix, **iterMatrix;
 int *rowDone; // 0 untouched, 1 inprogress, 2 done
 struct Complex *exactRoots;
 struct Colour *rootColours;
-
+int nbrRowsCompleted = 0;
 
 // OPTIMIZE IN CASE OF GERMAN
 // Compelx multiplicaion of two complex numbers
@@ -116,6 +116,7 @@ void * computeRows(void *args) {
       findRoot(row, column);
     }
     rowDone[row] = 2;
+    nbrRowsCompleted += 1;
     if(DEBUG)
       printf("setting row %d to %d\n", row, rowDone[row]);
   }
@@ -170,7 +171,6 @@ void * writeRows(void *args) {
       nanosleep(&sleepTime, NULL);
       continue;
     }
-    puts("spam");
     for (int column = 0; column < dimensions; ++column) {
       struct Colour colour = rootColours[rootMatrix[row][column]];
       fprintf(rootFile, "%d %d %d ", colour.r, colour.g, colour.b);
@@ -189,6 +189,7 @@ void * writeRows(void *args) {
 int main(int argc, char *argv[]) {
   size_t i, j;
  
+  // Parse command line arguments
   for ( i = 1; i < argc; ++i) {
     if (strncmp(argv[i],"-t",2) == 0) {
       nbrOfThreads = atoi(argv[i]+2);
@@ -200,9 +201,11 @@ int main(int argc, char *argv[]) {
       degree = atoi(argv[i]);
     }
   }
+
   if(DEBUG)
     printf("l: %d\n t: %d\n", dimensions, nbrOfThreads);
   
+  // Allocate memory
   puts("Initializing stuffs...");
   rootMatrix = (int**)malloc(sizeof(int*)*dimensions);
   int *rootMatrixValues = (int*)malloc(sizeof(int)*dimensions*dimensions); 
@@ -213,6 +216,7 @@ int main(int argc, char *argv[]) {
     iterMatrix[i] = iterMatrixValues + j;      
   }
   
+  // Calculate the possible roots
   exactRoots = (struct Complex*)malloc(sizeof(struct Complex)*degree);
   for (i = 0; i < degree; ++i) {
     float k = ((float)i)/((float)degree); 
@@ -222,6 +226,7 @@ int main(int argc, char *argv[]) {
       printf("ROOTS. BLOODY ROOOOOOOTS: (%f,%fi)\n",exactRoots[i].re,exactRoots[i].im);
   }
   
+  // Assign colors to each root
   rootColours = (struct Colour*)malloc(sizeof(struct Colour)*degree);
   for (i = 0; i < degree; ++i) {
     int val = 255*i / degree;
@@ -230,6 +235,7 @@ int main(int argc, char *argv[]) {
     rootColours[i].b = (val+145)%256;
   }
   
+  // Keeps track finished/unfinshed lines
   rowDone = (int*) malloc(sizeof(int)*dimensions);
   for (i = 0; i < degree; ++i) {
     rowDone[i] = 0;
@@ -245,6 +251,17 @@ int main(int argc, char *argv[]) {
   if (ret = pthread_create(&writerThread, NULL, writeRows, NULL)) {
     printf("Error creating thread: %\n", ret);
     exit(1);
+  }
+
+  // Risk for race condition
+  if (PROGRESS) {
+    puts("");
+    struct timespec mainSleep = {0, 100000};
+    while(nbrRowsCompleted < dimensions-1) {
+      printf("Progress: %d %%\r", (nbrRowsCompleted*100)/dimensions);
+      nanosleep(&mainSleep, NULL);
+    }
+    puts("Progress 100 %");
   }
 
   if (ret = pthread_join(writerThread, NULL)) {
