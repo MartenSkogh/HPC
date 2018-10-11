@@ -12,6 +12,8 @@
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
+#define DEBUG 0
+#define PROGRESS 1
 
 // Complex number
 struct Complex {
@@ -29,7 +31,7 @@ int **rootMatrix, **iterMatrix;
 int *rowDone; // 0 untouched, 1 inprogress, 2 done
 struct Complex *exactRoots;
 struct Colour *rootColours;
-
+int nbrRowsCompleted = 0;
 
 // OPTIMIZE IN CASE OF GERMAN
 // Compelx multiplicaion of two complex numbers
@@ -46,8 +48,9 @@ void mul_cpx(struct Complex * a, struct Complex * b, struct Complex * c)
 void findRoot(int rowIndex, int colIndex) {
   struct Complex x;
   int i;
-  
-  //printf("Finding roots...\n");
+
+  if(DEBUG)
+    printf("Finding roots...\n");
   
   x.re = -RANGE + (2.f*RANGE)/((float)(dimensions-1))*colIndex;
   x.im =  RANGE - (2.f*RANGE)/((float)(dimensions-1))*rowIndex;
@@ -99,19 +102,28 @@ void findRoot(int rowIndex, int colIndex) {
 
 void * computeRows(void *args) {
   int startRow = ((int*)args)[0];
-  printf("New thread started on row %d!\n", startRow);
+  if(DEBUG)
+    printf("New thread started on row %d!\n", startRow);
   for(int row = startRow; row < dimensions; ++row) {
-    //printf("Checking row %d", row);
+    if(DEBUG)
+      printf("Checking row %d", row);
     if (rowDone[row] != 0)
       continue;
-    // printf("Started work on row %d...\n", row);
+
+    if(DEBUG)
+      printf("Started work on row %d...\n", row);
+
     rowDone[row] = 1;
     for(int column = 0; column < dimensions; ++column) {
       //printf("Calling solver...\n");
       findRoot(row, column);
     }
     rowDone[row] = 2;
-    // printf("setting row %d to %d\n", row, rowDone[row]);
+
+    nbrRowsCompleted += 1;
+    if(DEBUG)
+      printf("setting row %d to %d\n", row, rowDone[row]);
+
   }
   puts("worker done");
   return NULL;
@@ -193,6 +205,7 @@ void * writeRows(void *args) {
 int main(int argc, char *argv[]) {
   size_t i, j;
  
+  // Parse command line arguments
   for ( i = 1; i < argc; ++i) {
     if (strncmp(argv[i],"-t",2) == 0) {
       nbrOfThreads = atoi(argv[i]+2);
@@ -204,9 +217,11 @@ int main(int argc, char *argv[]) {
       degree = atoi(argv[i]);
     }
   }
-  printf("l: %d\n",dimensions);
-  printf("t: %d\n",nbrOfThreads);
+
+  if(DEBUG)
+    printf("l: %d\n t: %d\n", dimensions, nbrOfThreads);
   
+  // Allocate memory
   puts("Initializing stuffs...");
   rootMatrix = (int**)malloc(sizeof(int*)*dimensions);
   int *rootMatrixValues = (int*)malloc(sizeof(int)*dimensions*dimensions); 
@@ -217,14 +232,17 @@ int main(int argc, char *argv[]) {
     iterMatrix[i] = iterMatrixValues + j;      
   }
   
+  // Calculate the possible roots
   exactRoots = (struct Complex*)malloc(sizeof(struct Complex)*degree);
   for (i = 0; i < degree; ++i) {
     float k = ((float)i)/((float)degree); 
     exactRoots[i].re = cosf(2*M_PI*k);
     exactRoots[i].im = sinf(2*M_PI*k);
-    printf("ROOTS. BLOODY ROOOOOOOTS: (%f,%fi)\n",exactRoots[i].re,exactRoots[i].im);
+    if(DEBUG)
+      printf("ROOTS. BLOODY ROOOOOOOTS: (%f,%fi)\n",exactRoots[i].re,exactRoots[i].im);
   }
   
+  // Assign colors to each root
   rootColours = (struct Colour*)malloc(sizeof(struct Colour)*degree);
   for (i = 0; i < degree; ++i) {
     int val = 255*i / degree;
@@ -234,6 +252,7 @@ int main(int argc, char *argv[]) {
     asprintf(&rootColours[i].ascii, "%d %d %d ", rootColours[i].r, rootColours[i].g, rootColours[i].b);
   }
   
+  // Keeps track finished/unfinshed lines
   rowDone = (int*) malloc(sizeof(int)*dimensions);
   for (i = 0; i < degree; ++i) {
     rowDone[i] = 0;
@@ -250,7 +269,18 @@ int main(int argc, char *argv[]) {
   }
   
   runWorkerThreads();
-  
+
+  // Risk for race condition
+  if (PROGRESS) {
+    puts("");
+    struct timespec mainSleep = {0, 100000};
+    while(nbrRowsCompleted < dimensions-1) {
+      printf("Progress: %d %%\r", (nbrRowsCompleted*100)/dimensions);
+      nanosleep(&mainSleep, NULL);
+    }
+    puts("Progress 100 %");
+  }
+
   if (ret = pthread_join(writerThread, NULL)) {
     printf("Error joining thread: %\n", ret);
     exit(1);
