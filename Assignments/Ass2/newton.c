@@ -122,12 +122,13 @@ void * computeRows(void *args) {
     }
     rowDone[row] = 2;
     if(PROGRESS)
-      nbrRowsCompleted += 1;
+      ++nbrRowsCompleted;
     if(DEBUG)
       printf("setting row %d to %d\n", row, rowDone[row]);
 
   }
-  puts("worker done");
+  if(DEBUG)
+    puts("worker done");
   return NULL;
 } 
 
@@ -196,6 +197,8 @@ void * writeRows(void *args) {
     fprintf(rootFile, "\n");
     fprintf(iterFile, "\n");
     ++row;
+    if(PROGRESS)
+      ++nbrRowsWritten;
   }
   
   puts("Closing files...");
@@ -276,11 +279,11 @@ int main(int argc, char *argv[]) {
   if (PROGRESS) {
     puts("");
     struct timespec mainSleep = {0, 100000};
-    while(nbrRowsCompleted < dimensions-1) {
-      printf("Progress: %d %%\r", (nbrRowsCompleted*100)/dimensions);
+    while((nbrRowsCompleted < dimensions) || (nbrRowsWritten < dimensions)) {
+      printf("Calculation Progress: %d %% ", (nbrRowsCompleted*100)/dimensions);
+      printf("Writing Progress: %d %%\r", (nbrRowsWritten*100)/dimensions);
       nanosleep(&mainSleep, NULL);
     }
-    puts("Progress 100 %");
   }
 
   if (ret = pthread_join(writerThread, NULL)) {
