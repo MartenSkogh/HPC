@@ -24,6 +24,7 @@ struct Complex {
 // RGB color
 struct Colour {
   int r, g, b;
+  char *ascii;
 };
   
 int nbrOfThreads, dimensions, degree, blockSize;
@@ -110,8 +111,10 @@ void * computeRows(void *args) {
       printf("Checking row %d", row);
     if (rowDone[row] != 0)
       continue;
+
     if(DEBUG)
       printf("Started work on row %d...\n", row);
+
     rowDone[row] = 1;
     for(int column = 0; column < dimensions; ++column) {
       //printf("Calling solver...\n");
@@ -122,7 +125,9 @@ void * computeRows(void *args) {
       nbrRowsCompleted += 1;
     if(DEBUG)
       printf("setting row %d to %d\n", row, rowDone[row]);
+
   }
+  puts("worker done");
   return NULL;
 } 
 
@@ -162,22 +167,31 @@ void * writeRows(void *args) {
   char iterFileName[40];
   sprintf(rootFileName, "newton_attractors_x%d.ppm", degree);
   sprintf(iterFileName, "newton_convergence_x%d.ppm",degree);
+  puts("opening files");
   rootFile = fopen(rootFileName,"w");
-  iterFile = fopen(iterFileName,"w");  
+  iterFile = fopen(iterFileName,"w");
+  puts("writing header");  
   fprintf(rootFile,"P3\n%d %d\n255\n", dimensions, dimensions);
   fprintf(iterFile,"P3\n%d %d\n%d\n", dimensions, dimensions, WHITE_ITERATION_COUNT);  
   
+  puts("Initializing greyscale..");
+  struct Colour greyColours[WHITE_ITERATION_COUNT];
+  for (int iteration = 0; iteration < WHITE_ITERATION_COUNT; ++iteration)
+    asprintf(&greyColours[iteration].ascii, "%d %d %d ",iteration, iteration, iteration);
+
   int row = 0;
   struct timespec sleepTime = {0, 1000};
   while (row < dimensions) {
+    //printf("checking row %d", row);
     if (rowDone[row] != 2) {
       nanosleep(&sleepTime, NULL);
       continue;
     }
+    //puts("spam");
     for (int column = 0; column < dimensions; ++column) {
       struct Colour colour = rootColours[rootMatrix[row][column]];
-      fprintf(rootFile, "%d %d %d ", colour.r, colour.g, colour.b);
-      fprintf(iterFile, "%d %d %d ", iterMatrix[row][column], iterMatrix[row][column], iterMatrix[row][column]);
+      fprintf(rootFile, colour.ascii);
+      fprintf(iterFile, greyColours[iterMatrix[row][column]].ascii);
     }
     fprintf(rootFile, "\n");
     fprintf(iterFile, "\n");
@@ -187,6 +201,7 @@ void * writeRows(void *args) {
   puts("Closing files...");
   fclose(rootFile);
   fclose(iterFile);
+  return NULL;
 }
 
 int main(int argc, char *argv[]) {
@@ -236,6 +251,7 @@ int main(int argc, char *argv[]) {
     rootColours[i].r = (val)%256;
     rootColours[i].g = (val+85)%256;
     rootColours[i].b = (val+145)%256;
+    asprintf(&rootColours[i].ascii, "%d %d %d ", rootColours[i].r, rootColours[i].g, rootColours[i].b);
   }
   
   // Keeps track finished/unfinshed lines
@@ -246,8 +262,6 @@ int main(int argc, char *argv[]) {
 
   printf("Starting...\n");
   
-  runWorkerThreads();
-  
   // create writer thread
   pthread_t writerThread;
   int ret = 0;
@@ -255,6 +269,8 @@ int main(int argc, char *argv[]) {
     printf("Error creating thread: %\n", ret);
     exit(1);
   }
+  
+  runWorkerThreads();
 
   // Risk for race condition
   if (PROGRESS) {
