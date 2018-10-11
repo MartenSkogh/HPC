@@ -12,6 +12,8 @@
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
+#define DEBUG 1
+
 
 // Complex number
 struct Complex {
@@ -45,8 +47,9 @@ void mul_cpx(struct Complex * a, struct Complex * b, struct Complex * c)
 void findRoot(int rowIndex, int colIndex) {
   struct Complex x;
   int i;
-  
-  //printf("Finding roots...\n");
+
+  if(DEBUG)
+    printf("Finding roots...\n");
   
   x.re = -RANGE + (2.f*RANGE)/((float)(dimensions-1))*colIndex;
   x.im =  RANGE - (2.f*RANGE)/((float)(dimensions-1))*rowIndex;
@@ -98,19 +101,23 @@ void findRoot(int rowIndex, int colIndex) {
 
 void * computeRows(void *args) {
   int startRow = ((int*)args)[0];
-  printf("New thread started on row %d!\n", startRow);
+  if(DEBUG)
+    printf("New thread started on row %d!\n", startRow);
   for(int row = startRow; row < dimensions; ++row) {
-    //printf("Checking row %d", row);
+    if(DEBUG)
+      printf("Checking row %d", row);
     if (rowDone[row] != 0)
       continue;
-    printf("Started work on row %d...\n", row);
+    if(DEBUG)
+      printf("Started work on row %d...\n", row);
     rowDone[row] = 1;
     for(int column = 0; column < dimensions; ++column) {
       //printf("Calling solver...\n");
       findRoot(row, column);
     }
     rowDone[row] = 2;
-    printf("setting row %d to %d\n", row, rowDone[row]);
+    if(DEBUG)
+      printf("setting row %d to %d\n", row, rowDone[row]);
   }
   return NULL;
 } 
@@ -193,8 +200,8 @@ int main(int argc, char *argv[]) {
       degree = atoi(argv[i]);
     }
   }
-  printf("l: %d\n",dimensions);
-  printf("t: %d\n",nbrOfThreads);
+  if(DEBUG)
+    printf("l: %d\n t: %d\n", dimensions, nbrOfThreads);
   
   puts("Initializing stuffs...");
   rootMatrix = (int**)malloc(sizeof(int*)*dimensions);
@@ -211,7 +218,8 @@ int main(int argc, char *argv[]) {
     float k = ((float)i)/((float)degree); 
     exactRoots[i].re = cosf(2*M_PI*k);
     exactRoots[i].im = sinf(2*M_PI*k);
-    printf("ROOTS. BLOODY ROOOOOOOTS: (%f,%fi)\n",exactRoots[i].re,exactRoots[i].im);
+    if(DEBUG)
+      printf("ROOTS. BLOODY ROOOOOOOTS: (%f,%fi)\n",exactRoots[i].re,exactRoots[i].im);
   }
   
   rootColours = (struct Colour*)malloc(sizeof(struct Colour)*degree);
