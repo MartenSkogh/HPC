@@ -55,3 +55,16 @@ When the threads are done they are joined, the allocated memory is freed and the
 
 ###Synchronisation 
 The synchronisation was made using the array rowsDone. With this, the absolute worst thing that could happen was that a row could be calculated more than once and that was deemed highly unlikely. The writing thread did all the file managing and was forced to write in the correct order. All other computations by the threads were completely independent.
+=======
+# Assignmnet 2 - High Performance Computing
+
+## Making and Running the Program
+
+Make the program by running 
+`$ make`
+then run the program with 
+`$ ./newton`
+
+## Program Layout
+
+## Performance
