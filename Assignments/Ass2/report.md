@@ -86,7 +86,7 @@ The following results were obtained by running the program on gantenbein on the 
 |7      | 0.401s  |
 
 ## Performance discussion
-We were satisfied with the overall performance since it fit well within the provided range. However, there were some specific areas of interest that will be discussed below.
+We were satisfied with the overall performance since it fit well within the provided range. Some optimisations were obvious given the course material, such as multiplying the complex numbers in a loop instead of using the build in pow function. However, there were some other areas of interest that will be discussed below.
 
 ### Bottlenecks
 In all of our runs the bottleneck turned out to be writing to the disk. Initially we used fwrite where the values for each pixel were substituted for each write. Then we optimized that to storing the strings and and writing with fprintf without substitution. Finally we moved to frwite with precomputed strings and string lengths. Even with the final version the writing still took significantly longer than the computation. Often the computation was done when the writing was only half-ways. A further improvement would have been to create entire rows in memory as a single string and writing it all at once.
