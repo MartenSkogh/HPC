@@ -1,113 +1,89 @@
+# Assignment 2 - High Performance Computing
+
 ## Introduction 
 An important aspect of high performance computing is parallelization.  This assignment was to write a program that performs a task using POSIX threads so that it is fast enough to pass a number of requirements. 
 The task is to solve equations with Newton’s method with different starting positions in the complex plane and then generate two images of type .ppm. The first being related to what root one converges to for each point, the second being related to how many iterations needed for convergence for each point. 
 
-## Program layout
-All code is written in the file newton.c. 
-
-TODO: WRITE ABOUT HEADERS AND STUFF
-
-First the input arguments are parsed. 
-
-Then memory is allocated for the two matrices used for building the images. These are rootMatrix and iterMatrix. Every element in rootMatrix stores a number between 1 and d which corresponds to one of the exact roots to the equation and every element in iterMatrix stores the number of iterations needed to find the root. 
-
-The exact roots are calculated and stored and are given an associated colour. For this purpose we make use of a Colour struct which stores three integers r, g and b aswell as an ascii string with those values.  
-
-
-The program writes the images row by row. In order to keep track of which rowes are ready to write or needs to be calculated, an array with an element for every row is created. It is filled with zeros at first which indicates that none of the rows are ready to be written. 
-
-~~~
-  rowDone = (int*) malloc(sizeof(int)*dimensions);
-  for (i = 0; i < degree; ++i) {
-    rowDone[i] = 0;
-  }
-~~~
-
-The writer thread is created and assigned the function writeRows. 
-
-~~~
- pthread_t writerThread;
-  int ret = 0;
-  if (ret = pthread_create(&writerThread, NULL, writeRows, NULL)) {
-    printf("Error creating thread: %\n", ret);
-    exit(1);
-  }
-~~~
-
-The function runWorkerThreads is called. This function creates the threads used for the computations and makes them calculate rows until they are all done.
-
-When the threads are done they are joined, the allocated memory is freed and the main function is done.
-
-
-
- which in addition to the main function has five more functions. 
-1. mul_cpx which given two complex number structs returns the product of the two as a complex number struct.
-2. findRoot: findRoot takes two indices and constructs a complex number in accordance with a grid mapping a part of the complex plane. It then finds the root to the equation by using Newton’s method with the complex number as starting point. The root is identified as one of the exact roots and the corresponding position is rootMatrix is set to the right root number and the corresponding position in iterationMatrix is set to the number of iterations it took to converge. 
-3. computeRows: In computeRows, a thread finds the next row that is yet to be computed. When a row which is marked as available, with a zero in the rowDone array, the threads marks that the row is being computed by changing the zero to a one. It then finds the root for every point within that row by looping  through the column indices and calling findRoot. When the row is calculated it is marked as done with a two in the rowDone array and the thread moves on to the next row until every row is done or in progress.
-
-4. runWorkerThreads: runWorkerThreads creates the number of threads specified by the user and assign the all to the function computeRows.
-
-5. writeRows: writeRows is the function performed by the writer thread. The writer thread writes the headers of the two files and then waits for the first row to be computed before it can write the results to the files. It then waits for the second row and so on by checking the rowDone array. This is done until all rows are written. In the while lopp, a the nanosleep function is called if the current row is not done yet. The function then closes the files. 
-
-##Results
-
-##Performance discussion
-
-###Synchronisation 
-The synchronisation was made using the array rowsDone. With this, the absolute worst thing that could happen was that a row could be calculated more than once and that was deemed highly unlikely. The writing thread did all the file managing and was forced to write in the correct order. All other computations by the threads were completely independent.
-=======
-# Assignmnet 2 - High Performance Computing
-
 ## Making and Running the Program
 
-Make the program by running  
+Make the program by running 
 `$ make`  
-then run the program with  
-`$ ./newton`  
+The program is compiled with gcc and optimization flag -O3.  
+To run the program enter  
+`$ ./newton -t{number of threads} -l{side length} {polynomial degree}`  
 
-## Program Layout
-Our program is divided into several functions and we also utilize several of the standard C headers.
+## Program Overview
+All code is written in the file newton.c. The program flow is as follows:
 
-The program uses several threads to compute the roots of a polynomial on a square subset of values around the complex zero. There is also two additional threads, the main thread and a second one used for writing the results to a file.
+1. Parse input arguments. 
+2. Allocate memory.
+3. Pre-calculate root values and assign colors to each root
+4. Start single writer thread that writes colors of roots to PPM file as they are calculated.
+5. Start worker threads that finds the roots of each value for a row at a time. The number of threads started is given by the input argument `-t`.
+6. Wait for all threads to finish, free memory and exit.
+
+
+### Detailed Execution
+In the `main` function the first thing happening is the parsing of the command line input arguments. From these the number of threads, image size, and degree of polynomial is assigned.
+
+Next memory is allocated for the two matrices used for building the images. These are `rootMatrix` and `iterMatrix`. Every element in `rootMatrix` stores a number between 1 and d which corresponds to one of the exact roots to the equation and every element in `iterMatrix` stores the number of iterations needed to find the root. 
+
+The exact roots are calculated and stored and are given an associated color. For this purpose we make use of a `Colour` data structure which stores three integers `r`, `g` and `b` aswell as an ascii char array, named `ascii`, with those values. This lets us easily color the root s found during the calculations.
+
+The program handles the data, both writing and calculating, row by row. A list of the statuses of all rows, `rowDone`, is used to keep track of which rows are left to be calculated and which are left to be written to the PPM-image file. The entry value 0 corresponds to a un-handled row, 1 is a row that is being calculated, and 2 is a row that is ready for writing to image file. All values of `rowDone` are initialized to 0.
+
+The writer thread is created and assigned the function `writeRows`. This thread then waits for the worker threads to finish with rows in the order `0,1,2,...,n`. That is, if row 25 is finished before the previous rows, then the thread cannot write row 25 until all rows before have been completed. 
+
+Then the function `runWorkerThreads` is called. This function creates the threads used for the computations. Each thread runs the Newton-Rhapson method on a single row until roots have been calculated for all values in that row. When a thread is finished with the row, the thread sets the corresponding value in `rowDone` to 2 and looks for another available row.
+
+When the threads are done they are joined, the allocated memory is freed and the main function is done. 
 
 ### Required files
 The only files that are required to compile the program are:
  
- 1. stdlib.h - Standard definitions
- 2. stdio.h - for printing to stdout and to write to files.
- 3. string.h - to use the string data type.
- 4. math.h - for mathimatical functions.
- 5. pthread.h - for POSIX threads.
- 6. errno.h - translating error numbers.
- 7. time.h - for timing and thread sleeping.
- 8. stdatomic.h - for atomic variables, protected against race conditions.
+ 1. `stdlib.h` - Standard definitions
+ 2. `stdio.h` - for printing to stdout and to write to files.
+ 3. `string.h` - to use the string data type.
+ 4. `math.h` - for mathimatical functions.
+ 5. `pthread.h` - for POSIX threads.
+ 6. `errno.h` - translating error numbers.
+ 7. `time.h` - for timing and thread sleeping.
+ 8. `stdatomic.h` - for atomic variables, protected against race conditions.
 
 ### Functions
 
-`mul_cpx`  
-Performs complex multiplication of two complex numbers.
+In addition to our `main` function, several other functions are used. These are listed below:
 
-`findRoot`  
-Performs the Newton-Rhapson method to find the root to which a gicǘen starting point converges.
+1. `mul_cpx`: given two `Complex` number structs calculates and returns the product of the two as a `Complex` number struct.
+2. `findRoot`: findRoot takes two indices and constructs a complex number in accordance with a grid mapping a part of the complex plane. It then finds the root to the equation by using Newton-Rhapson’s method with the complex number as starting point. The root is identified as one of the exact roots and the corresponding position in `rootMatrix` is set to the found root number and the corresponding position in `iterMatrix` is set to the number of iterations it took to converge. 
+3. `computeRows`: finds the next available row that has not yet beem computed. When a row which is marked as available, with a zero in the `rowDone` array, is found the thread marks that the row as being computed by changing `rowDone[i]` from 0 to 1. It then finds the root for every point within that row by looping  through the column indices and calling findRoot. When the row is calculated it is marked as done with a two in the rowDone array and the thread moves on to the next row until every row is done or in progress.
+4. `runWorkerThreads`: creates the number of threads specified by the user and assign the all to the function computeRows.
+5. `writeRows`: the function performed by the writer thread. The writer thread writes the headers of the two files and then waits for the first row to be computed before it can write the results to the files. It then waits for the second row and so on by checking the rowDone array. This is done until all rows are written. In the while lopp, a the nanosleep function is called if the current row is not done yet. The function then closes the files. 
 
-`computeRows`  
-Function passed to a new thread that will compute the roots for values in a given row of the input matrix.
+## Results
+`$ ./newton -l{L} -t10 7`
+| L     |  Time     |
+|------:|:---------:|
+|1000   | 0m0.077s  |
+|50000  | 2m38.516s |
 
-`runWorkerThreads`  
-Starts threads and gives them the data they are supposed to start work on.
+`$ ./newton -l1000 -t{N} 5`
+| N     |  Time     |
+|------:|:---------:|
+|1      | 0m0.239s  |
+|2      | 0m0.127s  |
+|3      | 0m0.089s  |
+|4      | 0m0.075s  |
 
-`writeRows`  
-Function passed to the writer thread. 
+`./newton -l1000 -t1 {D}`
+| D     |  Time     |
+|------:|:---------:|
+|1      | 0m0.072s  | 
+|2      | 0m0.099s  |
+|5      | 0m0.241s  |
+|7      | 0m0.401s  |
 
-`main`  
-Main function, called on program start.
+## Performance discussion
 
-### Data Structures
-
-**Complex**  
-A complex number consisting of two ints _re_ and _im_, the real and imaginary part. 
-
-**Colour**
-A data structure representing a color value. Represents the color in RGB format as both three integers 0 < _r_, _g_, _b_ < 255, and as a character array with the same values saved as a single char array.
-
-## Performance
+### Synchronisation 
+The synchronisation was made using the array rowsDone. With this, the absolute worst thing that could happen was that a row could be calculated more than once and that was deemed highly unlikely. The writing thread did all the file managing and was forced to write in the correct order. All other computations by the threads were completely independent.
