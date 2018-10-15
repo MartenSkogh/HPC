@@ -26,7 +26,8 @@ struct Colour {
   int r, g, b;
   char *ascii;
 };
-  
+
+// Define global variables  
 int nbrOfThreads, dimensions, degree, blockSize;
 int **rootMatrix, **iterMatrix;
 int *rowDone; // 0 untouched, 1 inprogress, 2 done
@@ -35,8 +36,7 @@ struct Colour *rootColours;
 atomic_int nbrRowsCompleted = 0;
 atomic_int nbrRowsWritten = 0;
 
-// OPTIMIZE IN CASE OF GERMAN
-// Compelx multiplicaion of two complex numbers
+// Complex multiplicaion of two complex numbers
 void mul_cpx(struct Complex * a, struct Complex * b, struct Complex * c)
 {
   struct Complex res;
