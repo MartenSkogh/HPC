@@ -23,7 +23,7 @@ struct Complex {
 
 // RGB color
 struct Colour {
-  int r, g, b;
+  int asciiLen;
   char *ascii;
 };
 
@@ -127,8 +127,7 @@ void * computeRows(void *args) {
       printf("setting row %d to %d\n", row, rowDone[row]);
 
   }
-  if(DEBUG)
-    puts("worker done");
+  puts("worker done");
   return NULL;
 } 
 
@@ -177,9 +176,10 @@ void * writeRows(void *args) {
   
   puts("Initializing greyscale..");
   struct Colour greyColours[WHITE_ITERATION_COUNT];
-  for (int iteration = 0; iteration < WHITE_ITERATION_COUNT; ++iteration)
+  for (int iteration = 0; iteration < WHITE_ITERATION_COUNT; ++iteration) {
     asprintf(&greyColours[iteration].ascii, "%d %d %d ",iteration, iteration, iteration);
-
+    greyColours[iteration].asciiLen = strlen(greyColours[iteration].ascii);
+  }
   int row = 0;
   struct timespec sleepTime = {0, 1000};
   while (row < dimensions) {
@@ -191,8 +191,8 @@ void * writeRows(void *args) {
     //puts("spam");
     for (int column = 0; column < dimensions; ++column) {
       struct Colour colour = rootColours[rootMatrix[row][column]];
-      fprintf(rootFile, colour.ascii);
-      fprintf(iterFile, greyColours[iterMatrix[row][column]].ascii);
+      fwrite(colour.ascii,1,colour.asciiLen, rootFile);
+      fwrite(greyColours[iterMatrix[row][column]].ascii, 1, greyColours[iterMatrix[row][column]].asciiLen, iterFile);
     }
     fprintf(rootFile, "\n");
     fprintf(iterFile, "\n");
@@ -251,10 +251,11 @@ int main(int argc, char *argv[]) {
   rootColours = (struct Colour*)malloc(sizeof(struct Colour)*degree);
   for (i = 0; i < degree; ++i) {
     int val = 255*i / degree;
-    rootColours[i].r = (val)%256;
-    rootColours[i].g = (val+85)%256;
-    rootColours[i].b = (val+145)%256;
-    asprintf(&rootColours[i].ascii, "%d %d %d ", rootColours[i].r, rootColours[i].g, rootColours[i].b);
+    int red = (val)%256;
+    int green = (val+85)%256;
+    int blue = (val+145)%256;
+    asprintf(&rootColours[i].ascii, "%d %d %d ", red, green, blue);
+    rootColours[i].asciiLen = strlen(rootColours[i].ascii);
   }
   
   // Keeps track finished/unfinshed lines
