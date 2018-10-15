@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -33,6 +34,7 @@ int **rootMatrix, **iterMatrix;
 int *rowDone; // 0 untouched, 1 inprogress, 2 done
 struct Complex *exactRoots;
 struct Colour *rootColours;
+struct Colour greyColours[WHITE_ITERATION_COUNT]; // 50 shades of grey 
 atomic_int nbrRowsCompleted = 0;
 atomic_int nbrRowsWritten = 0;
 
@@ -127,7 +129,7 @@ void * computeRows(void *args) {
       printf("setting row %d to %d\n", row, rowDone[row]);
 
   }
-  puts("worker done");
+//  puts("worker done");
   return NULL;
 } 
 
@@ -172,13 +174,7 @@ void * writeRows(void *args) {
   puts("writing header");  
   fprintf(rootFile,"P3\n%d %d\n255\n", dimensions, dimensions);
   fprintf(iterFile,"P3\n%d %d\n%d\n", dimensions, dimensions, WHITE_ITERATION_COUNT);  
-  
-  puts("Initializing greyscale..");
-  struct Colour greyColours[WHITE_ITERATION_COUNT]; // 50 shades of grey 
-  for (int iteration = 0; iteration < WHITE_ITERATION_COUNT; ++iteration) {
-    asprintf(&greyColours[iteration].ascii, "%d %d %d ",iteration, iteration, iteration);
-    greyColours[iteration].asciiLen = strlen(greyColours[iteration].ascii);
-  }
+ 
   int row = 0;
   struct timespec sleepTime = {0, 1000};
   while (row < dimensions) {
@@ -191,8 +187,10 @@ void * writeRows(void *args) {
     // Write the file pixel content
     for (int column = 0; column < dimensions; ++column) {
       struct Colour colour = rootColours[rootMatrix[row][column]];
-      fwrite(colour.ascii,1,colour.asciiLen, rootFile);
-      fwrite(greyColours[iterMatrix[row][column]].ascii, 1, greyColours[iterMatrix[row][column]].asciiLen + 1, iterFile);
+      struct Colour greyColour = greyColours[iterMatrix[row][column]-1];
+      fwrite(colour.ascii,     1, colour.asciiLen,     rootFile);
+      fwrite(greyColour.ascii, 1, greyColour.asciiLen, iterFile);
+      //printf("String: \"%s\", length: %d\n", greyColours[iterMatrix[row][column]-1].ascii, greyColours[iterMatrix[row][column]-1].asciiLen);
     }
     fprintf(rootFile, "\n");
     fprintf(iterFile, "\n");
@@ -258,6 +256,13 @@ int main(int argc, char *argv[]) {
     rootColours[i].asciiLen = strlen(rootColours[i].ascii);
   }
   
+  puts("Initializing greyscale..");
+  //struct Colour greyColours[WHITE_ITERATION_COUNT]; // 50 shades of grey 
+  for (int iteration = 0; iteration < WHITE_ITERATION_COUNT; ++iteration) {
+    asprintf(&greyColours[iteration].ascii, "%d %d %d ",iteration, iteration, iteration);// Includes null terminator
+    greyColours[iteration].asciiLen = strlen(greyColours[iteration].ascii); // Misses terminating null terminator
+  }
+ 
   // Keeps track finished/unfinshed lines
   rowDone = (int*) malloc(sizeof(int)*dimensions);
   for (i = 0; i < degree; ++i) {
