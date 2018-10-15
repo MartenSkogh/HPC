@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
   
   runWorkerThreads();
 
-  // Risk for race condition
+  // Risk for race condition, mitigated with useof atomic variables
   if (PROGRESS) {
     puts("");
     struct timespec mainSleep = {0, 100000};
