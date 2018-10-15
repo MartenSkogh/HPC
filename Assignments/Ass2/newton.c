@@ -84,7 +84,7 @@ void findRoot(int rowIndex, int colIndex) {
     
     iterations = min(WHITE_ITERATION_COUNT, ++iterations);
     // one iteration more than necessary
-  }WHITE_ITERATION_COUNT
+  }
   
   iterMatrix[rowIndex][colIndex] = iterations;
   
@@ -113,7 +113,7 @@ void * computeRows(void *args) {
       continue;
 
     if(DEBUG)
-      printf("Started work on row %d...\n"WHITE_ITERATION_COUNT, row);
+      printf("Started work on row %d...\n", row);
 
     rowDone[row] = 1;
     for(int column = 0; column < dimensions; ++column) {
@@ -134,7 +134,6 @@ void * computeRows(void *args) {
 void runWorkerThreads() {
   unsigned int ret = 0;
   pthread_t threads[nbrOfThreads];
-  WHITE_ITERATION_COUNT
   //printf("blockSize = %d\n", blockSize);
   for (size_t tx=0; tx < nbrOfThreads; ++tx) {
     int* arg = (int*)malloc(sizeof(int));
@@ -154,7 +153,7 @@ void runWorkerThreads() {
       }
             
       printf("Error creating thread: %\n", ret);
-      exit(1);WHITE_ITERATION_COUNT
+      exit(1);
     }
   }
 }
