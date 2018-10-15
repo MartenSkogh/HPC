@@ -61,29 +61,36 @@ In addition to our `main` function, several other functions are used. These are 
 5. `writeRows`: the function performed by the writer thread. The writer thread writes the headers of the two files and then waits for the first row to be computed before it can write the results to the files. It then waits for the second row and so on by checking the rowDone array. This is done until all rows are written. In the while lopp, a the nanosleep function is called if the current row is not done yet. The function then closes the files. 
 
 ## Results
+The following results were obtained by running the program on gantenbein on the ssd multiple times and taking the average. The reason for using the ssd was that writing to the home directory was highly unreliable with the time varying by at least a factor of 10 between runs. This could have been due to a high number of concurrent users. 
+
 `$ ./newton -l{L} -t10 7`
 | L     |  Time     |
 |------:|:---------:|
-|1000   | 0m0.077s  |
-|50000  | 2m38.516s |
+|1000   | 0.077s  |
+|50000  | 158.516s |
 
 `$ ./newton -l1000 -t{N} 5`
 | N     |  Time     |
 |------:|:---------:|
-|1      | 0m0.239s  |
-|2      | 0m0.127s  |
-|3      | 0m0.089s  |
-|4      | 0m0.075s  |
+|1      | 0.239s  |
+|2      | 0.127s  |
+|3      | 0.089s  |
+|4      | 0.075s  |
 
 `./newton -l1000 -t1 {D}`
 | D     |  Time     |
 |------:|:---------:|
-|1      | 0m0.072s  | 
-|2      | 0m0.099s  |
-|5      | 0m0.241s  |
-|7      | 0m0.401s  |
+|1      | 0.072s  | 
+|2      | 0.099s  |
+|5      | 0.241s  |
+|7      | 0.401s  |
 
 ## Performance discussion
+We were satisfied with the overall performance since it fit well within the provided range. However, there were some specific areas of interest that will be discussed below.
+
+### Bottlenecks
+In all of our runs the bottleneck turned out to be writing to the disk. Initially we used fwrite where the values for each pixel were substituted for each write. Then we optimized that to storing the strings and and writing with fprintf without substitution. Finally we moved to frwite with precomputed strings and string lengths. Even with the final version the writing still took significantly longer than the computation. Often the computation was done when the writing was only half-ways. A further improvement would have been to create entire rows in memory as a single string and writing it all at once.
 
 ### Synchronisation 
-The synchronisation was made using the array rowsDone. With this, the absolute worst thing that could happen was that a row could be calculated more than once and that was deemed highly unlikely. The writing thread did all the file managing and was forced to write in the correct order. All other computations by the threads were completely independent.
+The synchronisation was made using the array rowsDone. Initially a lock was used to prevent threads from accessing this array simultaneously but later that restriction was removed. We realized that the the absolute worst thing that could happen was that a row could be calculated more than once and that was deemed highly unlikely. The writing thread did all the file managing and was forced to write in the correct order. All other computations by the threads were completely independent.
+
