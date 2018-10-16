@@ -97,14 +97,20 @@ int main(int argc, char *argv[]) {
   int numLines2 = blockSize;
   while (numLines1 == blockSize)
   {
+    // TODO: need some way to tell readBlock where to start reading
     numLines1 = readBlock(block1, blockSize);
+
     // compute distances within one block
     compute_inner_distances(block1, numLines1);
+
+    // End the loop if we read the last block
     if (numLines1 < blockSize)
       break;
-    // compute distances 
+
+    // compute distances between blocks
     while (numLines2 == blockSize)
     {
+      // TODO: need some way to tell readBlock where to start reading
       numLines2 = readBlock(block2, blockSize);
       if (numLines2 == 0)
         break;
