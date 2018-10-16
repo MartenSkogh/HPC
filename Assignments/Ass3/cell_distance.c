@@ -30,12 +30,16 @@ int dist(int *point1, int *point2)
 int readBlock(int** block, int blockSize)
 {
   // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
-  return 0;
+
+  // FILE fp* = fopen("cells", "r");
+  // move cursor to correct position
+  // read points linewise and put them in block
+  return 0; //change to num lines
 }
 
 void compute_inner_distances(int** block, int numElements)
 {
-  //Parallelize this shit to hell
+  // Parallelize this shit to hell (maybe use some reduce thingy)
   // #pragma omp parallel for collapse(2)
   for (int i = 0; i < numElements - 1; ++i)
     for(int j = i + 1; j < numElements; ++j)
@@ -45,8 +49,11 @@ void compute_inner_distances(int** block, int numElements)
 
 void compute_cross_distances(int **block1, int **block2, int numElements1, int numElements2)
 {
+  // Parallelize this shit to hell (maybe use some reduce thingy)
+  // #pragma omp parallel for collapse(2)
   for (int i = 0; i < numElements1; ++i)
     for(int j = 0; j < numElements2; ++j)
+      // #pragma omp atomic
       ++distances[dist(block1[i], block2[j])];
 }
 
@@ -76,7 +83,7 @@ int main(int argc, char *argv[]) {
     printf("t: %d\n", nbrOfThreads);
   
   // Figure out block size
-  int blockSize = 10; // do something smart here
+  int blockSize = 10000; // maybe do something smart here (or not)
 
   // Allocate memory
   puts("Initializing stuffs...");
