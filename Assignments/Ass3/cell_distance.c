@@ -26,9 +26,9 @@ void parseLine(float* destination, char* line)
 {
   for (size_t i = 0, offset = 0; i < 3; ++i, offset += 8)
   {
-    destination[i] = (float)(line[offset + 1] - '0') * 10 + (float)(line[offset+2]-'0') + (float)(line[offset+3]-'0')/10 + (float)(line[offset+4]-'0')/100 + (float)(line[offset+5]-'0')/1000;
+    destination[i] = (float)(line[offset + 1] - '0') * 10 + (float)(line[offset+2]-'0') + (float)(line[offset+4]-'0')/10 + (float)(line[offset+5]-'0')/100 + (float)(line[offset+6]-'0')/1000;
     if (line[offset] == '-')
-      destination[offset] *= -1;
+      destination[i] *= -1;
   }
 }
 
@@ -42,9 +42,7 @@ int readBlock(float** block, int numPoints)
   int lineNumber;
   for (lineNumber = 0; lineNumber < numPoints; ++lineNumber)
   {
-    puts("asd");
     size_t charRead = fread(line, sizeof(char), CHARACTERS_IN_LINE, fp);
-    puts(line);
     if (charRead < CHARACTERS_IN_LINE)
       break;
     // #pragma omp task
