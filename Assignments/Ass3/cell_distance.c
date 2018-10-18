@@ -25,24 +25,25 @@ void parseLine(float* destination, char* line)
 {
   for (size_t i = 0, offset = 0; i < 3; ++i, offset += 8)
   {
-    destination[i] = line[offset + 1] * 10 + line[offset+2] + line[offset+3]/10 + line[offset+4]/100 + line[offset+5]/1000;
+    destination[i] = (float)(line[offset + 1] - '0') * 10 + (float)(line[offset+2]-'0') + (float)(line[offset+3]-'0')/10 + (float)(line[offset+4]-'0')/100 + (float)(line[offset+5]-'0')/1000;
     if (line[offset] == '-')
       destination[offset] *= -1;
   }
 }
 
+
 int readBlock(float** block, int numPoints)
 {
   // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
-
-  FILE fp* = fopen("cells", "r");
+  puts("opening file");
+  FILE *fp = fopen("cells", "r");
   char line[CHARACTERS_IN_LINE];
   int lineNumber;
-  for (lineNumber = 0; i < numPoints)
+  for (lineNumber = 0; lineNumber < numPoints; ++lineNumber)
   {
     size_t charRead = fread(line, sizeof(char), CHARACTERS_IN_LINE, fp);
     if (charRead < CHARACTERS_IN_LINE)
-      break
+      break;
     // #pragma omp task
     parseLine(block[lineNumber], line);
   }
@@ -80,6 +81,7 @@ void compute_cross_distances(float **block1, float **block2, int numElements1, i
       ++distances[dist(block1[i], block2[j])];
 }
 
+
 void write_distances()
 {
   FILE *file = fopen("output.txt", "w+");
@@ -91,6 +93,7 @@ void write_distances()
   }
   fclose(file);
 }
+
 
 int main(int argc, char *argv[]) {
   size_t i, j;
