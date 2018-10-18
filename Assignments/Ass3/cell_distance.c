@@ -15,29 +15,51 @@
 #define PROGRESS 1
 
 #define MAX_DISTANCE 3465 // maximum distance given that all points are within [-10, 10]. Calculated by ceil(sqrt(20^2 + 20^2 + 20^2) * 100)
+#define CHARACTERS_IN_LINE 24 // example "+01.330 -09.035 +03.489\n"
 
 int *distances;
 int nbrOfThreads;
 
-int dist(int *point1, int *point2)
+
+void parseLine(float* destination, char* line)
 {
-  float x = (float) (point1[0] - point2[0]);
-  float y = (float) (point1[1] - point2[1]);
-  float z = (float) (point1[2] - point2[2]);
-  return (int) (sqrt(x*x + y*y + z*z)/10);
+  for (size_t i = 0, offset = 0; i < 3; ++i, offset += 8)
+  {
+    destination[i] = line[offset + 1] * 10 + line[offset+2] + line[offset+3]/10 + line[offset+4]/100 + line[offset+5]/1000;
+    if (line[offset] == '-')
+      destination[offset] *= -1;
+  }
 }
 
-int readBlock(int** block, int blockSize)
+int readBlock(float** block, int numPoints)
 {
   // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
 
-  // FILE fp* = fopen("cells", "r");
-  // move cursor to correct position
-  // read points linewise and put them in block
-  return 0; //change to num lines
+  FILE fp* = fopen("cells", "r");
+  char line[CHARACTERS_IN_LINE];
+  int lineNumber;
+  for (lineNumber = 0; i < numPoints)
+  {
+    size_t charRead = fread(line, sizeof(char), CHARACTERS_IN_LINE, fp);
+    if (charRead < CHARACTERS_IN_LINE)
+      break
+    // #pragma omp task
+    parseLine(block[lineNumber], line);
+  }
+  return lineNumber;
 }
 
-void compute_inner_distances(int** block, int numElements)
+
+int dist(float *point1, float *point2)
+{
+  float x = (point1[0] - point2[0]);
+  float y = (point1[1] - point2[1]);
+  float z = (point1[2] - point2[2]);
+  return (int) (sqrt(x*x + y*y + z*z)/10);
+}
+
+
+void compute_inner_distances(float** block, int numElements)
 {
   // Parallelize this shit to hell (maybe use some reduce thingy)
   // #pragma omp parallel for collapse(2)
@@ -47,7 +69,8 @@ void compute_inner_distances(int** block, int numElements)
       ++distances[dist(block[i], block[j])];
 }
 
-void compute_cross_distances(int **block1, int **block2, int numElements1, int numElements2)
+
+void compute_cross_distances(float **block1, float **block2, int numElements1, int numElements2)
 {
   // Parallelize this shit to hell (maybe use some reduce thingy)
   // #pragma omp parallel for collapse(2)
@@ -91,10 +114,10 @@ int main(int argc, char *argv[]) {
   for (i = 0; i < MAX_DISTANCE; ++i)
     distances[i] = 0;
 
-  int **block1 = (int**) malloc(sizeof(int*) * blockSize);
-  int *block1Values = (int*) malloc(sizeof(int) * blockSize * 3); 
-  int **block2 = (int**) malloc(sizeof(int*) * blockSize);
-  int *block2Values = (int*) malloc(sizeof(int) * blockSize * 3); 
+  float **block1 = (float**) malloc(sizeof(float*) * blockSize);
+  float *block1Values = (float*) malloc(sizeof(float) * blockSize * 3); 
+  float **block2 = (float**) malloc(sizeof(float*) * blockSize);
+  float *block2Values = (float*) malloc(sizeof(float) * blockSize * 3); 
   for (i = 0, j = 0; i < blockSize; ++i, j+=3) {
     block1[i] = block1Values + j;
     block2[i] = block2Values + j;      
