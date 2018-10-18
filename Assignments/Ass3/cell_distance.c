@@ -50,7 +50,7 @@ int readBlock(float** block, int numPoints)
     size_t charRead = fread(line, sizeof(char), CHARACTERS_IN_LINE, fp);
     if (charRead < CHARACTERS_IN_LINE)
       break;
-#pragma omp task
+    // #pragma omp task
     parseLine(block[lineNumber], line);
   }
   return lineNumber;
@@ -69,10 +69,9 @@ int dist(float *point1, float *point2)
 void compute_inner_distances(float** block, int numElements)
 {
   // Parallelize this shit to hell (maybe use some reduce thingy)
-  #pragma omp parallel for
+  #pragma omp parallel for reduction(+:distances[0:MAX_DISTANCE])
   for (int i = 0; i < numElements - 1; ++i)
     for(int j = i + 1; j < numElements; ++j)
-     // #pragma omp atomic
       ++distances[dist(block[i], block[j])];
 }
 
@@ -80,10 +79,9 @@ void compute_inner_distances(float** block, int numElements)
 void compute_cross_distances(float **block1, float **block2, int numElements1, int numElements2)
 {
   // Parallelize this shit to hell (maybe use some reduce thingy)
-  #pragma omp parallel for
+  #pragma omp parallel for reduction(+:distances[0:MAX_DISTANCE])
   for (int i = 0; i < numElements1; ++i)
     for(int j = 0; j < numElements2; ++j)
-      #pragma omp atomic
       ++distances[dist(block1[i], block2[j])];
 }
 
