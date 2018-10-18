@@ -1,5 +1,5 @@
 CC	= gcc
-CFLAGS 	+= -std=gnu11 -lm -lpthread -march=native -O3
+CFLAGS 	+= -std=c11 -lm -lpthread -fopenmp -march=native -O3
 DBFLAGS	= -pg -fprofile-arcs -ftest-coverage
 SRCS	= cell_distance.c
 DEPS 	?= cell_distance.h
