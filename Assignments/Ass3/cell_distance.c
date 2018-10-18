@@ -1,3 +1,4 @@
+#include <omp.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,7 +19,7 @@
 #define CHARACTERS_IN_LINE 24 // example "+01.330 -09.035 +03.489\n"
 
 int *distances;
-int nbrOfThreads;
+int numThreads;
 
 
 void parseLine(float* destination, char* line)
@@ -65,10 +66,10 @@ int dist(float *point1, float *point2)
 void compute_inner_distances(float** block, int numElements)
 {
   // Parallelize this shit to hell (maybe use some reduce thingy)
-  // #pragma omp parallel for collapse(2)
+  #pragma omp parallel for collapse(2)
   for (int i = 0; i < numElements - 1; ++i)
     for(int j = i + 1; j < numElements; ++j)
-      // #pragma omp atomic
+      #pragma omp atomic
       ++distances[dist(block[i], block[j])];
 }
 
@@ -101,15 +102,18 @@ int main(int argc, char *argv[]) {
   size_t i, j;
 
   // Parse command line arguments
+  numThreads = 1;
   for ( i = 1; i < argc; ++i) {
     if (strncmp(argv[i],"-t",2) == 0) {
-      nbrOfThreads = atoi(argv[i]+2);
+      numThreads = atoi(argv[i]+2);
     }
   }
 
   if(DEBUG)
-    printf("t: %d\n", nbrOfThreads);
+    printf("t: %d\n", numThreads);
   
+  omp_set_num_threads(numThreads);
+
   // Figure out block size
   int blockSize = 10000; // maybe do something smart here (or not)
 
