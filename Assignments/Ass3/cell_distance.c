@@ -50,7 +50,7 @@ int readBlock(float** block, int numPoints)
     size_t charRead = fread(line, sizeof(char), CHARACTERS_IN_LINE, fp);
     if (charRead < CHARACTERS_IN_LINE)
       break;
-    // #pragma omp task
+#pragma omp task
     parseLine(block[lineNumber], line);
   }
   return lineNumber;
@@ -69,7 +69,7 @@ int dist(float *point1, float *point2)
 void compute_inner_distances(float** block, int numElements)
 {
   // Parallelize this shit to hell (maybe use some reduce thingy)
-  //#pragma omp parallel for //collapse(2)
+  #pragma omp parallel for
   for (int i = 0; i < numElements - 1; ++i)
     for(int j = i + 1; j < numElements; ++j)
      // #pragma omp atomic
@@ -80,10 +80,10 @@ void compute_inner_distances(float** block, int numElements)
 void compute_cross_distances(float **block1, float **block2, int numElements1, int numElements2)
 {
   // Parallelize this shit to hell (maybe use some reduce thingy)
-  // #pragma omp parallel for collapse(2)
+  #pragma omp parallel for
   for (int i = 0; i < numElements1; ++i)
     for(int j = 0; j < numElements2; ++j)
-      // #pragma omp atomic
+      #pragma omp atomic
       ++distances[dist(block1[i], block2[j])];
 }
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
   omp_set_num_threads(numThreads);
 
   // Figure out block size
-  int blockSize = 10000; // maybe do something smart here (or not)
+  int blockSize = 11000; // maybe do something smart here (or not)
 
   // Allocate memory
   puts("Initializing stuffs...");
