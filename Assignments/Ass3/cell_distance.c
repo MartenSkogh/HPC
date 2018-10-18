@@ -37,10 +37,10 @@ int readBlock(float** block, int numPoints)
 {
   // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
   puts("opening file");
-  const char * fileName = "cells"; 
+  const char * fileName = "cells.txt"; 
   FILE *fp = fopen(fileName, "r");
   if(fp == NULL) {
-    printf("ERROR: Cannot open file %s\n", fileName);
+    printf("ERROR: Cannot open file \"%s\"\n", fileName);
     return -1;
   }
   char line[CHARACTERS_IN_LINE];
@@ -143,6 +143,9 @@ int main(int argc, char *argv[]) {
   {
     // TODO: need some way to tell readBlock where to start reading
     numLines1 = readBlock(block1, blockSize);
+    if(numLines1 == -1){
+      return 1;
+    }
 
     // compute distances within one block
     compute_inner_distances(block1, numLines1);
@@ -173,7 +176,7 @@ int main(int argc, char *argv[]) {
   //   }
   // }
 
-  printf("Starting write to file");
+  printf("Starting write to file...\n");
   write_distances();
 
   puts("Freeing memory...");
