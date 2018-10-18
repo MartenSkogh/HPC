@@ -41,7 +41,9 @@ int readBlock(float** block, int numPoints)
   int lineNumber;
   for (lineNumber = 0; lineNumber < numPoints; ++lineNumber)
   {
+    puts("asd");
     size_t charRead = fread(line, sizeof(char), CHARACTERS_IN_LINE, fp);
+    puts(line);
     if (charRead < CHARACTERS_IN_LINE)
       break;
     // #pragma omp task
@@ -56,7 +58,7 @@ int dist(float *point1, float *point2)
   float x = (point1[0] - point2[0]);
   float y = (point1[1] - point2[1]);
   float z = (point1[2] - point2[2]);
-  return (int) (sqrt(x*x + y*y + z*z)/10);
+  return (int) (sqrt(x*x + y*y + z*z)*100);
 }
 
 
@@ -89,7 +91,7 @@ void write_distances()
   {
     if (distances[i] == 0)
       continue;
-    fprintf(file, "%.2f, %d", ((float)(i))/100, distances[i]);
+    fprintf(file, "%.2f, %d\n", ((float)(i))/100, distances[i]);
   }
   fclose(file);
 }
