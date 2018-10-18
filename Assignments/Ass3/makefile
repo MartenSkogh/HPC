@@ -15,7 +15,7 @@ $(OBJS): $(SRCS)
 	$(CC) $(CFLAGS) -c -o $@ $^
 test: cell_distance
 	make
-	./cell_distance -t5 -l100 5
+	./cell_distance -t1
 
 clean: 
 	rm *.o
