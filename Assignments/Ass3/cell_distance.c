@@ -37,7 +37,12 @@ int readBlock(float** block, int numPoints)
 {
   // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
   puts("opening file");
-  FILE *fp = fopen("cells", "r");
+  const char * fileName = "cells"; 
+  FILE *fp = fopen(fileName, "r");
+  if(fp == NULL) {
+    fprintf("ERROR: Cannot open file %s\n",fileName);
+    return -1;
+  }
   char line[CHARACTERS_IN_LINE];
   int lineNumber;
   for (lineNumber = 0; lineNumber < numPoints; ++lineNumber)
@@ -64,10 +69,10 @@ int dist(float *point1, float *point2)
 void compute_inner_distances(float** block, int numElements)
 {
   // Parallelize this shit to hell (maybe use some reduce thingy)
-  #pragma omp parallel for collapse(2)
+  //#pragma omp parallel for //collapse(2)
   for (int i = 0; i < numElements - 1; ++i)
     for(int j = i + 1; j < numElements; ++j)
-      #pragma omp atomic
+     // #pragma omp atomic
       ++distances[dist(block[i], block[j])];
 }
 
