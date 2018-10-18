@@ -40,7 +40,7 @@ int readBlock(float** block, int numPoints)
   const char * fileName = "cells"; 
   FILE *fp = fopen(fileName, "r");
   if(fp == NULL) {
-    fprintf("ERROR: Cannot open file %s\n",fileName);
+    printf("ERROR: Cannot open file %s\n", fileName);
     return -1;
   }
   char line[CHARACTERS_IN_LINE];
