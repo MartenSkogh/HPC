@@ -34,13 +34,10 @@ void parseLine(float* destination, char* line)
 }
 
 
-int readBlock(float** block, int numPoints)
+int readBlock(float** block, int numPoints, FILE *fp)
 {
     // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
-    puts("opening file");
-    const char * fileName = "cells.txt"; 
-    FILE *fp = fopen(fileName, "r");
-    int fileSeek = fseek(fp,linesRead,SEEK_SET);
+    int fileSeek = fseek(fp,linesRead*CHARACTERS_IN_LINE*sizeof(char),SEEK_SET);
     if(fp == NULL) {
         printf("ERROR: Cannot open file \"%s\"\n", fileName);
         return -1;
@@ -136,6 +133,10 @@ int main(int argc, char *argv[]) {
         block2[i] = block2Values + j;            
     }
     
+    puts("opening file");
+    const char * fileName = "cells.txt"; 
+    FILE *fp = fopen(fileName, "r");
+
     printf("Starting...\n");
     // figure out numBlocks somehow 
     int numLines1 = blockSize;
@@ -143,7 +144,7 @@ int main(int argc, char *argv[]) {
     while (numLines1 == blockSize)
     {
         // TODO: need some way to tell readBlock where to start reading
-        numLines1 = readBlock(block1, blockSize);
+        numLines1 = readBlock(block1, blockSize, fp);
         if(numLines1 == -1){
             return 1;
         }
