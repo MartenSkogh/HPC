@@ -38,10 +38,6 @@ int readBlock(float** block, int numPoints, FILE *fp)
 {
     // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
     int fileSeek = fseek(fp,linesRead*CHARACTERS_IN_LINE*sizeof(char),SEEK_SET);
-    if(fp == NULL) {
-        printf("ERROR: Cannot open file \"%s\"\n", fileName);
-        return -1;
-    }
     char line[CHARACTERS_IN_LINE];
     int lineNumber;
     for (lineNumber = 0; lineNumber < numPoints; ++lineNumber)
@@ -134,9 +130,13 @@ int main(int argc, char *argv[]) {
     }
     
     puts("opening file");
-    const char * fileName = "cells.txt"; 
+    const char * fileName = "cells"; 
     FILE *fp = fopen(fileName, "r");
-
+    if(fp == NULL) {
+        printf("ERROR: Cannot open file \"%s\"\n", fileName);
+        return -1;
+    }
+   
     printf("Starting...\n");
     // figure out numBlocks somehow 
     int numLines1 = blockSize;
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
         while (numLines2 == blockSize)
         {
             // TODO: need some way to tell readBlock where to start reading
-            numLines2 = readBlock(block2, blockSize);
+            numLines2 = readBlock(block2, blockSize,fp);
             if (numLines2 == 0)
                 break;
             compute_cross_distances(block1, block2, numLines1, numLines2);
