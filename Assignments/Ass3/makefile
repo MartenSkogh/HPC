@@ -1,7 +1,7 @@
 CC	= gcc
 CFLAGS 	+= -std=c11 -lm -lpthread -fopenmp -march=native -O3
 DBFLAGS	= -pg -fprofile-arcs -ftest-coverage
-SRCS	= cell_distance.c
+SRCS	= cell_distanceSUCKYPHILIPVERSION.c
 OBJS	= cell_distance.o
 TARGS	= cell_distance
 
