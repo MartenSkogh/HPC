@@ -1,3 +1,4 @@
+#include <omp.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,16 +19,16 @@
 #define CHARACTERS_IN_LINE 24 // example "+01.330 -09.035 +03.489\n"
 
 int *distances;
-int nbrOfThreads;
+int numThreads;
 
 
 void parseLine(float* destination, char* line)
 {
   for (size_t i = 0, offset = 0; i < 3; ++i, offset += 8)
   {
-    destination[i] = (float)(line[offset + 1] - '0') * 10 + (float)(line[offset+2]-'0') + (float)(line[offset+3]-'0')/10 + (float)(line[offset+4]-'0')/100 + (float)(line[offset+5]-'0')/1000;
+    destination[i] = (float)(line[offset + 1] - '0') * 10 + (float)(line[offset+2]-'0') + (float)(line[offset+4]-'0')/10 + (float)(line[offset+5]-'0')/100 + (float)(line[offset+6]-'0')/1000;
     if (line[offset] == '-')
-      destination[offset] *= -1;
+      destination[i] *= -1;
   }
 }
 
@@ -36,14 +37,17 @@ int readBlock(float** block, int numPoints)
 {
   // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
   puts("opening file");
-  FILE *fp = fopen("cells", "r");
+  const char * fileName = "cells.txt"; 
+  FILE *fp = fopen(fileName, "r");
+  if(fp == NULL) {
+    printf("ERROR: Cannot open file \"%s\"\n", fileName);
+    return -1;
+  }
   char line[CHARACTERS_IN_LINE];
   int lineNumber;
   for (lineNumber = 0; lineNumber < numPoints; ++lineNumber)
   {
-    puts("asd");
     size_t charRead = fread(line, sizeof(char), CHARACTERS_IN_LINE, fp);
-    puts(line);
     if (charRead < CHARACTERS_IN_LINE)
       break;
     // #pragma omp task
@@ -65,10 +69,9 @@ int dist(float *point1, float *point2)
 void compute_inner_distances(float** block, int numElements)
 {
   // Parallelize this shit to hell (maybe use some reduce thingy)
-  // #pragma omp parallel for collapse(2)
+  #pragma omp parallel for reduction(+:distances[0:MAX_DISTANCE])
   for (int i = 0; i < numElements - 1; ++i)
     for(int j = i + 1; j < numElements; ++j)
-      // #pragma omp atomic
       ++distances[dist(block[i], block[j])];
 }
 
@@ -76,10 +79,9 @@ void compute_inner_distances(float** block, int numElements)
 void compute_cross_distances(float **block1, float **block2, int numElements1, int numElements2)
 {
   // Parallelize this shit to hell (maybe use some reduce thingy)
-  // #pragma omp parallel for collapse(2)
+  #pragma omp parallel for reduction(+:distances[0:MAX_DISTANCE])
   for (int i = 0; i < numElements1; ++i)
     for(int j = 0; j < numElements2; ++j)
-      // #pragma omp atomic
       ++distances[dist(block1[i], block2[j])];
 }
 
@@ -101,17 +103,20 @@ int main(int argc, char *argv[]) {
   size_t i, j;
 
   // Parse command line arguments
+  numThreads = 1;
   for ( i = 1; i < argc; ++i) {
     if (strncmp(argv[i],"-t",2) == 0) {
-      nbrOfThreads = atoi(argv[i]+2);
+      numThreads = atoi(argv[i]+2);
     }
   }
 
   if(DEBUG)
-    printf("t: %d\n", nbrOfThreads);
+    printf("t: %d\n", numThreads);
   
+  omp_set_num_threads(numThreads);
+
   // Figure out block size
-  int blockSize = 10000; // maybe do something smart here (or not)
+  int blockSize = 11000; // maybe do something smart here (or not)
 
   // Allocate memory
   puts("Initializing stuffs...");
@@ -136,6 +141,9 @@ int main(int argc, char *argv[]) {
   {
     // TODO: need some way to tell readBlock where to start reading
     numLines1 = readBlock(block1, blockSize);
+    if(numLines1 == -1){
+      return 1;
+    }
 
     // compute distances within one block
     compute_inner_distances(block1, numLines1);
@@ -166,7 +174,7 @@ int main(int argc, char *argv[]) {
   //   }
   // }
 
-  printf("Starting write to file");
+  printf("Starting write to file...\n");
   write_distances();
 
   puts("Freeing memory...");
