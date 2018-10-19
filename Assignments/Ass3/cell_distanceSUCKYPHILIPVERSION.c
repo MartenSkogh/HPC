@@ -20,7 +20,6 @@
 
 int *distances;
 int numThreads;
-long int linesRead = 0;
 
 
 void parseLine(float* destination, char* line)
@@ -34,10 +33,10 @@ void parseLine(float* destination, char* line)
 }
 
 
-int readBlock(float** block, int numPoints, FILE *fp)
+int readBlock(float** block, int numPoints, FILE *fp, long int startLine)
 {
     // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
-    int fileSeek = fseek(fp,linesRead*CHARACTERS_IN_LINE*sizeof(char),SEEK_SET);
+    int fileSeek = fseek(fp,startLine*CHARACTERS_IN_LINE*sizeof(char),SEEK_SET);
     char line[CHARACTERS_IN_LINE];
     int lineNumber;
     for (lineNumber = 0; lineNumber < numPoints; ++lineNumber)
@@ -139,15 +138,13 @@ int main(int argc, char *argv[]) {
    
     printf("Starting...\n");
     // figure out numBlocks somehow 
-    int numLines1 = blockSize;
-    int numLines2 = blockSize;
-    while (numLines1 == blockSize)
+    long int block1Position = 0;
+    long int block2Position = 0;
+    while (block1Position % blockSize == 0)
     {
         // TODO: need some way to tell readBlock where to start reading
-        numLines1 = readBlock(block1, blockSize, fp);
-        if(numLines1 == -1){
-            return 1;
-        }
+        int numLines1 = readBlock(block1, blockSize, fp, block1Position);
+        block1Position += numLines1;
 
         // compute distances within one block
         compute_inner_distances(block1, numLines1);
@@ -157,13 +154,15 @@ int main(int argc, char *argv[]) {
             break;
 
         // compute distances between blocks
-        while (numLines2 == blockSize)
+        block2Position = block1Position;
+        while (block2Position % blockSize == 0)
         {
             // TODO: need some way to tell readBlock where to start reading
-            numLines2 = readBlock(block2, blockSize,fp);
+            numLines2 = readBlock(block2, blockSize, fp, block2Position);
             if (numLines2 == 0)
                 break;
             compute_cross_distances(block1, block2, numLines1, numLines2);
+            block2Position += numLines2;
         }
     }
 
