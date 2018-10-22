@@ -47,7 +47,7 @@ int readBlock(float** block, int numPoints, FILE *fp, long int startLine)
         if (charRead < CHARACTERS_IN_LINE)
             break;
         #pragma omp task
-        parseLine(block[lineNumber], line)
+        parseLine(block[lineNumber], line);
     }
     return lineNumber;
 }
