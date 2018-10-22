@@ -106,7 +106,7 @@ void write_distances()
 
 int main(int argc, char *argv[]) {
     size_t i, j;
-
+    char * fileName = NULL; 
     // Parse command line arguments
     int numThreads = 1;
     int blockSize = 10000;
@@ -114,8 +114,13 @@ int main(int argc, char *argv[]) {
         if (strncmp(argv[i],"-t",2) == 0) {
             numThreads = atoi(argv[i]+2);
         }
-	else if (strncmp(argv[i],"-b",2) == 0) {
+	      else if (strncmp(argv[i],"-b",2) == 0) {
             blockSize = atoi(argv[i]+2);
+        }
+        // Take data file name as input
+        else if (strncmp(argv[i],"-f",2) == 0) {
+             fileName = argv[i]+2;
+             printf("Input file: '%s'\n", fileName);
         }
     }
 
@@ -139,14 +144,16 @@ int main(int argc, char *argv[]) {
         block1[i] = block1Values + j;
         block2[i] = block2Values + j;            
     }
-    if (DEBUG)
-    	puts("opening file");
-    const char * fileName = "cells"; 
+
+    if (DEBUG) { puts("opening file"); }
+    if (fileName == NULL)
+      fileName = "cells"; 
     FILE *fp = fopen(fileName, "r");
     if(fp == NULL) {
         printf("ERROR: Cannot open file \"%s\"\n", fileName);
         return -1;
     }
+
     if (DEBUG)
     	printf("Starting...\n");
     // figure out numBlocks somehow 
