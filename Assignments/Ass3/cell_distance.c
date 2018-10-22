@@ -15,7 +15,8 @@
 #define DEBUG 0
 #define PROGRESS 1
 
-#define MAX_DISTANCE 3465 // maximum distance given that all points are within [-10, 10]. Calculated by ceil(sqrt(20^2 + 20^2 + 20^2) * 100)
+
+#define NBR_POSSIBLE_DISTANCES 3465 // maximum distance given that all points are within [-10, 10]. Calculated by ceil(sqrt(20^2 + 20^2 + 20^2) * 100)
 #define CHARACTERS_IN_LINE 24 // example "+01.330 -09.035 +03.489\n"
 
 int *distances;
@@ -46,7 +47,7 @@ int readBlock(float** block, int numPoints, FILE *fp, long int startLine)
         if (charRead < CHARACTERS_IN_LINE)
             break;
         #pragma omp task
-        parseLine(block[lineNumber], line);
+        parseLine(block[lineNumber], line)
     }
     return lineNumber;
 }
@@ -64,7 +65,7 @@ int dist(float *point1, float *point2)
 void compute_inner_distances(float** block, int numElements)
 {
     // Parallelize this shit to hell (maybe use some reduce thingy)
-    #pragma omp parallel for reduction(+:distances[0:MAX_DISTANCE])
+    #pragma omp parallel for reduction(+:distances[0:NBR_POSSIBLE_DISTANCES])
     for (int i = 0; i < numElements - 1; ++i)
         for(int j = i + 1; j < numElements; ++j)
             ++distances[dist(block[i], block[j])];
@@ -74,7 +75,7 @@ void compute_inner_distances(float** block, int numElements)
 void compute_cross_distances(float **block1, float **block2, int numElements1, int numElements2)
 {
     // Parallelize this shit to hell (maybe use some reduce thingy)
-    #pragma omp parallel for reduction(+:distances[0:MAX_DISTANCE])
+    #pragma omp parallel for reduction(+:distances[0:NBR_POSSIBLE_DISTANCES])
     for (int i = 0; i < numElements1; ++i)
         for(int j = 0; j < numElements2; ++j)
             ++distances[dist(block1[i], block2[j])];
@@ -85,7 +86,7 @@ void write_distances()
 {  
     if (DEBUG) {	
     FILE *file = fopen("output.txt", "w+");
-    for (int i = 0; i < MAX_DISTANCE; ++i)
+    for (int i = 0; i < NBR_POSSIBLE_DISTANCES; ++i)
     {
         if (distances[i] == 0)
             continue;
@@ -94,7 +95,7 @@ void write_distances()
     fclose(file);}
 
     else {	
-    for (int i = 0; i < MAX_DISTANCE; ++i)
+    for (int i = 0; i < NBR_POSSIBLE_DISTANCES; ++i)
     {
         if (distances[i] == 0)
             continue;
@@ -132,8 +133,8 @@ int main(int argc, char *argv[]) {
     // Allocate memory
     if (DEBUG)
     	puts("Initializing stuffs...");
-    distances = (int*)malloc(sizeof(int)*MAX_DISTANCE);
-    for (i = 0; i < MAX_DISTANCE; ++i)
+    distances = (int*)malloc(sizeof(int)*NBR_POSSIBLE_DISTANCES);
+    for (i = 0; i < NBR_POSSIBLE_DISTANCES; ++i)
         distances[i] = 0;
 
     float **block1 = (float**) malloc(sizeof(float*) * blockSize);
@@ -208,3 +209,4 @@ int main(int argc, char *argv[]) {
     	printf("Finished!\n");
     return 0;
 }
+
