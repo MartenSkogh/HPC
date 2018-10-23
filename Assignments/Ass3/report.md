@@ -81,7 +81,7 @@ The program was not allowed to consume more than 1 GiBi byte of memory at a give
 4. New blocks are read into block2 and processed until the end of the file is reached.
 5. A new block1 is read and (2.-4.) is repeated until every distance has been calculated. 
 
-The size in bytes of every row is known since it has a defined format. With the default block size of 1e4, the memory requirements for both blocks are roughly \$$ 4 * 10^4 * 3 * 2 $$ bytes which is 240 kB. This is obviously much smaller than 1 Gibi byte and thus the memory requirement is fulfilled.
+The size in bytes of every row is known since it has a defined format. With the default block size of 1e4, the memory requirements for both blocks are roughly \$$ 4 * 10^4 * 3 * 2 $$ bytes which is 240 kB. This is obviously much smaller than 1 GiB and thus the memory requirement is fulfilled.
 
 ## Program description
 
