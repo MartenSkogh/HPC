@@ -148,5 +148,5 @@ Here, the timing results are presented for different number of positions and num
 |10    | 1e5 | 2.90 s | 4.1         |
 |20    | 1e5 | 1.23 s | 2.6         |
 
-All runtimes are below the maximum runtimes defined in the assignment.
+As can be seen in the table, all runtimes are below the maximum runtimes defined in the assignment and are actually close to half of the target times.
 
