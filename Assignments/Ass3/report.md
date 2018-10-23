@@ -1,5 +1,10 @@
 # HPC Assignemt 3 - OpenMP
 
+Authors:   
+_Philip Edenborg_  
+_Adam Tonderski_  
+_Mårten Skogh_  
+
 ## Introduction
 The goal of this assignment was to implement a program that reads a number of positions in space from a file, calculates all the distances between points, counts how many times each distance occurs and write out the distance and the number of occurrences to stdout. The program shall also be parallelized using OpenMP and be fast enough to pass some requirements. 
 
@@ -9,10 +14,10 @@ Make the program by running
 `$ make`  
 The program is compiled with gcc and optimization flag -O3.  
 To run the program enter  
-`$ ./cell_distance -t{number of threads} -b{size of reading block} -f{position file name}`  
+`$ ./cell\_distance -t{number of threads} -b{size of reading block} -f{/path/to/positions}`  
 
 ## Program Overview
-All code is written in the file cell_distance.c. The program flow is as follows:
+All code is written in the file cell\_distance.c. The program flow is as follows:
 
 1. Parse input arguments. 
 2. Allocate memory and open the file.
@@ -34,7 +39,8 @@ The size in bytes of every row is known since it has a defined format. And the d
 
 ## Program description
 
-The distances were to be calculated with two decimals precision (with some rounding error tolerated). Another simplification was the range of the coordinated that was assumed to be [-10,10]. This made the number of possible distances manageble and to keep count over the distances, an integer array called `distances`, with every index corresponding to a distance, is allocated and set to zero. The number of possible distances are calculated as the maximum distance times 100 (for two decimals) rounded upward, ceil(sqrt(20^2 + 20^2 + 20^2)*100).
+The distances were to be calculated with two decimals precision (with some rounding error tolerated). Another simplification was the range of the coordinated that was assumed to be [-10,10]. This made the number of possible distances manageble and to keep count over the distances, an integer array called `distances`, with every index corresponding to a distance, is allocated and set to zero. The number of possible distances are calculated as the maximum distance times 100 (for two decimals)
+rounded upward, ceil(sqrt(20^2 + 20^2 + 20^2)\*100).
 
 The blocks, `block1` and `block2`, are allocated as double float arrays.  
 
@@ -42,9 +48,9 @@ To keep track over where in the file the blocks "are", the integers `blockPositi
 
 The function `readBlock`, which in`block1` and `block2` are read, returns the number of lines read in the variables `numLines1` and `numLines2` respectively. These are used to increment the block-position variables and to determine whether to break the while-loops. If `numLines1` at some time is smaller than `blockSize`, the last `block1` has been read. Similary, if `numLines2` is zero, the last `block2` has been read. 
 
-The distances within a block are computed using the function `compute_inner_distances` with `block1` and the number of lines in the block, `numLines`, as input arguments. The distances between blocks are computed using `compute_cross_distances` for every instance of `block2`.
+The distances within a block are computed using the function `compute\_inner\_distances` with `block1` and the number of lines in the block, `numLines`, as input arguments. The distances between blocks are computed using `compute\_cross\_distances` for every instance of `block2`.
 
-When all blocks have been read and evaluated, the function `ẁrite_distances` is called to print the results. When a distance is calculated it is multiplied by 100, converted to an integer and stored in the corresponding position in `distances`. For example, a distance 3.213 will be stored in `distances[321]`. When the distances and occurences then are printed, the indices are printed after being converted to floats and divided by 100. Distances that that does not occur in the data set are ignored. 
+When all blocks have been read and evaluated, the function `ẁrite\_distances` is called to print the results. When a distance is calculated it is multiplied by 100, converted to an integer and stored in the corresponding position in `distances`. For example, a distance 3.213 will be stored in `distances[321]`. When the distances and occurences then are printed, the indices are printed after being converted to floats and divided by 100. Distances that that does not occur in the data set are ignored. 
 
 ### Required files
 The only files that are required to compile the program are:
@@ -58,18 +64,18 @@ The only files that are required to compile the program are:
 ### Functions
 In addition to our `main` function, several other functions are used. These are listed below:
 
-1. `int readBlock(float** block, int numPoints, FILE *fp, long int startLine)`: Finds the right position in the file pointer `fp` using `fseek` with an offset `startLine*CHARACTERS_IN_LINE*sizeof(char)`. It then reads one line at a time using `fread` and calls the function `parseLine` to put the data in `block`.
-2. `void parseLine(float* destination, char* line)`: Parses the chars in `line` to floats and stores them in `destination` (a position in block)
-4. `int dist(float *point1, float *point2)`: Calculates the cartesian distance between `point1` and `point2` and multiplies is with 100.
-5. `void compute_inner_distances(float** block, int numElements)`: Loops through `block` using `numElements` and updates the global array `distances` using the function `dist`.
-6. `void compute_cross_distances(float **block1, float **block2, int numElements1, int numElements2)`: Calculates the distances between every point in `block1` and every point in `block2` using the number of elements in the blocks,`numElements1`and `numElements2`. The global array `distances` is updated using the function `dist`.
-7. `void write_distances()`: Prints ´((float)i)/100´ and `distances[i]` for every index `i` of `distances`.
+1. `int readBlock(float\*\* block, int numPoints, FILE \*fp, long int startLine)`: Finds the right position in the file pointer `fp` using `fseek` with an offset `startLine\*CHARACTERS\_IN\_LINE*sizeof(char)`. It then reads one line at a time using `fread` and calls the function `parseLine` to put the data in `block`.
+2. `void parseLine(float\* destination, char\* line)`: Parses the chars in `line` to floats and stores them in `destination` (a position in block)
+4. `int dist(float \*point1, float \*point2)`: Calculates the cartesian distance between `point1` and `point2` and multiplies is with 100.
+5. `void compute\_inner\_distances(float\*\* block, int numElements)`: Loops through `block` using `numElements` and updates the global array `distances` using the function `dist`.
+6. `void compute\_cross\_distances(float \*\*block1, float \*\*block2, int numElements1, int numElements2)`: Calculates the distances between every point in `block1` and every point in `block2` using the number of elements in the blocks,`numElements1`and `numElements2`. The global array `distances` is updated using the function `dist`.
+7. `void write\_distances()`: Prints ´((float)i)/100´ and `distances[i]` for every index `i` of `distances`.
 
 ### Paralellization 
 The parallelization is done using OpenMP. In the the two functions for calculating distances, the double for-loops are parallelized using reduction 
 
 ~~~C
-#pragma omp parallel for reduction(+:distances[0:NBR_POSSIBLE_DISTANCES])
+#pragma omp parallel for reduction(+:distances[0:NBR\_POSSIBLE\_DISTANCES])
 for (int i = 0; i < numElements - 1; ++i)
     for (int j = i + 1; j < numElements; ++j)
         ++distances[dist(block[i], block[j])];
@@ -89,7 +95,7 @@ VAD HADE VI FÖR PRAGMA FÖRST NÄR DET VAR LÅNGSAMT?
 ## Results
 Here, the timing results are presented for different number of positions and number of threads. The benchmarking is done by running 100 times and taking the average runtime. 
 
-`$ ./cell_distance -t{T} -fcell_{N}`
+`$ ./cell\_distance -t{T} -fcell\_{N}`
 | T     | N |   Time     |
 |------:|:--:|:------:|
 |1  | 1e4 | 0.29 s|
@@ -98,6 +104,4 @@ Here, the timing results are presented for different number of positions and num
 |20 | 1e5 | 1.96 s|
 
 All runtimes are belowed the maximum runtimes defined in the assignment.
-
-
 
