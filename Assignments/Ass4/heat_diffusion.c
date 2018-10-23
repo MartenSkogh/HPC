@@ -8,7 +8,7 @@
 
 int main(int argc, char *argv[]) {
     size_t i, j;     
-    cl_int_error;
+    cl_int error;
     
     cl_platform_id platform_id;
     cl_uint nmb_platforms;
@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
         printf( "cannot get platform\n" );
         return 1;           
     }
-    
+    printf("Number of platforms: %d \n", (int)nmb_platforms);	
     int box_height;
     int box_width;
     float central_value;
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
         }
         // Take data file name as input
         else if (strncmp(argv[i],"-n",2) == 0) {
-             nbr_iterations = argv[i]+2;            
+             nbr_iterations = atoi(argv[i]+2);            
         }
     }
 
