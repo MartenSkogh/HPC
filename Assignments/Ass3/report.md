@@ -135,8 +135,6 @@ for (int i = 0; i < numElements - 1; ++i)
 ~~~
 This was however more than ten times slower than reduction.
 
-In `readBlock`, `#pragma omp task` is used when parsing the lines. VARFÖR THO?
-
 ## Results
 Here, the timing results are presented for different number of positions and number of threads. The benchmarking is done by running 100 times and taking the average runtime. 
 
@@ -144,10 +142,10 @@ Here, the timing results are presented for different number of positions and num
 
 | T    | N   |  Time  |
 |-----:|:---:|:------:|
-|1     | 1e4 | 0.29 s |
-|5     | 1e5 | 5.09 s |
-|10    | 1e5 | 3.20 s |
-|20    | 1e5 | 1.96 s |
+|1     | 1e4 | 0.27 s |
+|5     | 1e5 | 4.40 s |
+|10    | 1e5 | 2.90 s |
+|20    | 1e5 | 1.23 s |
 
 All runtimes are below the maximum runtimes defined in the assignment.
 

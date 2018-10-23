@@ -3,21 +3,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <errno.h>
-#include <time.h>
-#include <stdatomic.h>
-
-#define min(a,b) \
-     ({ __typeof__ (a) _a = (a); \
-             __typeof__ (b) _b = (b); \
-         _a < _b ? _a : _b; })
 
 #define DEBUG 0
-#define PROGRESS 1
-
 
 #define NBR_POSSIBLE_DISTANCES 3465 // maximum distance given that all points are within [-10, 10]. Calculated by ceil(sqrt(20^2 + 20^2 + 20^2) * 100)
 #define CHARACTERS_IN_LINE 24 // example "+01.330 -09.035 +03.489\n"
+
 
 int *distances;
 
@@ -36,8 +27,6 @@ void parseLine(float* destination, char* line)
 int readBlock(float** block, int numPoints, FILE *fp, long int startLine)
 {
     // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
-    if (DEBUG)
-	    printf("starting to read block at position %d\n", startLine);
     int fileSeek = fseek(fp,startLine*CHARACTERS_IN_LINE*sizeof(char),SEEK_SET);
     char line[CHARACTERS_IN_LINE];
     int lineNumber;
@@ -64,7 +53,6 @@ int dist(float *point1, float *point2)
 
 void compute_inner_distances(float** block, int numElements)
 {
-    // Parallelize this shit to hell (maybe use some reduce thingy)
     #pragma omp parallel for reduction(+:distances[0:NBR_POSSIBLE_DISTANCES])
     for (int i = 0; i < numElements - 1; ++i)
         for (int j = i + 1; j < numElements; ++j)
@@ -74,7 +62,6 @@ void compute_inner_distances(float** block, int numElements)
 
 void compute_cross_distances(float **block1, float **block2, int numElements1, int numElements2)
 {
-    // Parallelize this shit to hell (maybe use some reduce thingy)
     #pragma omp parallel for reduction(+:distances[0:NBR_POSSIBLE_DISTANCES])
     for (int i = 0; i < numElements1; ++i)
         for (int j = 0; j < numElements2; ++j)
@@ -85,7 +72,7 @@ void compute_cross_distances(float **block1, float **block2, int numElements1, i
 void write_distances()
 {  
     if (DEBUG) {	
-    FILE *file = fopen("output.txt", "w+");
+        FILE *file = fopen("output.txt", "w+");
     for (int i = 0; i < NBR_POSSIBLE_DISTANCES; ++i)
     {
         if (distances[i] == 0)
@@ -146,9 +133,10 @@ int main(int argc, char *argv[]) {
         block2[i] = block2Values + j;            
     }
 
-    if (DEBUG) { puts("opening file"); }
+    if (DEBUG) 
+        puts("opening file");
     if (fileName == NULL)
-      fileName = "cells"; 
+        fileName = "cells"; 
     FILE *fp = fopen(fileName, "r");
     if(fp == NULL) {
         printf("ERROR: Cannot open file \"%s\"\n", fileName);
@@ -157,12 +145,10 @@ int main(int argc, char *argv[]) {
 
     if (DEBUG)
     	printf("Starting...\n");
-    // figure out numBlocks somehow 
     long int block1Position = 0;
     long int block2Position = 0;
     while (block1Position % blockSize == 0)
     {
-        // TODO: need some way to tell readBlock where to start reading
         int numLines1 = readBlock(block1, blockSize, fp, block1Position);
         block1Position += numLines1;
 
@@ -177,7 +163,6 @@ int main(int argc, char *argv[]) {
         block2Position = block1Position;
         while (block2Position % blockSize == 0)
         {
-            // TODO: need some way to tell readBlock where to start reading
             int  numLines2 = readBlock(block2, blockSize, fp, block2Position);
             if (numLines2 == 0)
                 break;
@@ -186,16 +171,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Risk for race condition, mitigated with useof atomic variables
-    // if (PROGRESS) {
-    //     puts("");
-    //     struct timespec mainSleep = {0, 100000};
-    //     while((nbrRowsCompleted < dimensions) || (nbrRowsWritten < dimensions)) {
-    //         printf("Calculation Progress: %d %% ", (nbrRowsCompleted*100)/dimensions);
-    //         printf("Writing Progress: %d %%\r", (nbrRowsWritten*100)/dimensions);
-    //         nanosleep(&mainSleep, NULL);
-    //     }
-    // }
     if (DEBUG)	
     	printf("Starting write to file...\n");
     write_distances();
