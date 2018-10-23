@@ -6,6 +6,24 @@
 
 #define DEBUG 0
 
+
+char kernel_program[] = "
+__kernel void mat_mul(
+    __global const float * read,
+    __global const float * write,
+    int width,
+    int height)
+{
+    int ix = get_global_id(0);
+    int jx = get_global_id(1);
+  
+    if (ix == 0 || ix == width || jx == 0 || jx == height)
+        return
+    write[ix * width_b + jx] = read[(ix+1) * width_b + jx] + read[(ix-1) * width_b + jx] + read[ix * width_b + jx + 1] + read[ix * width_b + jx - 1] - read[ix * width_b + jx];
+}
+"
+
+
 int main(int argc, char *argv[]) {
     size_t i, j;     
     cl_int error;
@@ -58,24 +76,44 @@ int main(int argc, char *argv[]) {
     cl_command_queue command_queue;
     command_queue = clCreateCommandQueue(context, device_id, 0, &error);
     if (error != CL_SUCCESS) {
-    printf("cannot create context\n");
-    return 1;
-  }
-    // Allocate memory
+        printf("cannot create context\n");
+        return 1;
+    }
+
+    box_matrix_1  = clCreateBuffer(context, CL_MEM_READ_WRITE,
+        box_height * box_width * sizeof(float), NULL, NULL);
+    box_matrix_2  = clCreateBuffer(context, CL_MEM_READ_WRITE,
+        box_height * box_width * sizeof(float), NULL, NULL);
     
+    // Allocate memory
+    float * a = malloc(box_height*box_width*sizeof(float));
+    float * b = malloc(box_height*box_width*sizeof(float));
+    for (size_t ix=0; ix < box_height*box_width; ++ix)
+    {
+        a[ix] = 0;
+    }
+    for (int ix = box_height / 2; ix <= box_height / 2 + 1 - (box_height % 2); ++ix)
+        for (int jx = box_width / 2; jx <= box_width / 2 + 1 - (box_width % 2); ++jx)
+        {
+            a[ix][jx] = central_value;
+        }
 
-    if (DEBUG)
-    	printf("Starting...\n");
+    clEnqueueWriteBuffer(command_queue, box_matrix_1, CL_TRUE,
+        0, box_height*box_width*sizeof(float), a, 0, NULL, NULL);
+    // clEnqueueWriteBuffer(command_queue, input_buffer_b, CL_TRUE,
+    //     0, width_b*height_b*sizeof(float), b, 0, NULL, NULL);
 
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), &box_matrix_1);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), &box_matrix_2);
+    clSetKernelArg(kernel, 3, sizeof(int), &box_width);
+    clSetKernelArg(kernel, 4, sizeof(int), &box_height);
 
-    if (DEBUG)	
-    	printf("Starting write to file...\n");
+    const size_t global[] = {box_height, box_width};
+    clEnqueueNDRangeKernel(command_queue, kernel, 2,
+        NULL, (const size_t *)&global, NULL, 0, NULL, NULL);
 
-    if (DEBUG)	
-    	puts("Freeing memory...");
+    clEnqueueReadBuffer(command_queue, box_matrix_2, CL_TRUE,
+        0, box_height*box_width*sizeof(float), c, 0, NULL, NULL)
 
-    if (DEBUG)
-    	printf("Finished!\n");
     return 0;
 }
-
