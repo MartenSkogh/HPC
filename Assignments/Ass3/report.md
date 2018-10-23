@@ -15,6 +15,7 @@ Make the program by running
 The program is compiled with gcc and optimization flag -O3.  
 To run the program enter  
 `$ ./cell\_distance -t{number of threads} -b{size of reading block} -f{/path/to/positions}`  
+ where the -f flag is optional, the default behavior is to search for a file called cells in the current working directory.
 
 ## Program Overview
 
