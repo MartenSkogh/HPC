@@ -96,12 +96,12 @@ VAD HADE VI FÖR PRAGMA FÖRST NÄR DET VAR LÅNGSAMT?
 Here, the timing results are presented for different number of positions and number of threads. The benchmarking is done by running 100 times and taking the average runtime. 
 
 `$ ./cell_distance -t{T} -fcell_{N}`
-| T     | N |   Time     |
-|------:|:--:|:------:|
-|1  | 1e4 | 0.29 s|
-|5  | 1e5 | 5.09 s|
-|10 | 1e5 | 3.20 s|
-|20 | 1e5 | 1.96 s|
+| T    | N   |  Time  |
+|-----:|:---:|:------:|
+|1     | 1e4 | 0.29 s |
+|5     | 1e5 | 5.09 s |
+|10    | 1e5 | 3.20 s |
+|20    | 1e5 | 1.96 s |
 
 All runtimes are belowed the maximum runtimes defined in the assignment.
 
