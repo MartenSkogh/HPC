@@ -141,12 +141,12 @@ Here, the timing results are presented for different number of positions and num
 
 `$ ./cell_distance -t{T} -fcell_{N}`  
 
-| T    | N   |  Time  |
-|-----:|:---:|:------:|
-|1     | 1e4 | 0.27 s |
-|5     | 1e5 | 4.40 s |
-|10    | 1e5 | 2.90 s |
-|20    | 1e5 | 1.23 s |
+| T    | N   |  Time  | Target Time |
+|-----:|:---:|:------:|:------------|
+|1     | 1e4 | 0.27 s | 0.41        |
+|5     | 1e5 | 4.40 s | 8.2         |
+|10    | 1e5 | 2.90 s | 4.1         |
+|20    | 1e5 | 1.23 s | 2.6         |
 
 All runtimes are below the maximum runtimes defined in the assignment.
 
