@@ -93,9 +93,9 @@ To keep track over where in the file the blocks "are", the integers `blockPositi
 
 The function `readBlock`, which in`block1` and `block2` are read, returns the number of lines read in the variables `numLines1` and `numLines2` respectively. These are used to increment the block-position variables and to determine whether to break the while-loops. If `numLines1` at some time is smaller than `blockSize`, the last `block1` has been read. Similary, if `numLines2` is zero, the last `block2` has been read. 
 
-The distances within a block are computed using the function `compute\_inner\_distances` with `block1` and the number of lines in the block, `numLines`, as input arguments. The distances between blocks are computed using `compute\_cross\_distances` for every instance of `block2`.
+The distances within a block are computed using the function `compute_inner_distances` with `block1` and the number of lines in the block, `numLines`, as input arguments. The distances between blocks are computed using `compute_cross_distances` for every instance of `block2`.
 
-When all blocks have been read and evaluated, the function `ẁrite\_distances` is called to print the results. When a distance is calculated it is multiplied by 100, converted to an integer and stored in the corresponding position in `distances`. For example, a distance 3.213 will be stored in `distances[321]`. When the distances and occurences then are printed, the indices are printed after being converted to floats and divided by 100. Distances that that does not occur in the data set are ignored. 
+When all blocks have been read and evaluated, the function `ẁrite_distances` is called to print the results. When a distance is calculated it is multiplied by 100, converted to an integer and stored in the corresponding position in `distances`. For example, a distance 3.213 will be stored in `distances[321]`. When the distances and occurences then are printed, the indices are printed after being converted to floats and divided by 100. Distances that that does not occur in the data set are ignored. 
 
 ### Required files
 The only files that are required to compile the program are:
@@ -120,7 +120,7 @@ In addition to our `main` function, several other functions are used. These are 
 The parallelization is done using OpenMP. In the the two functions for calculating distances, the double for-loops are parallelized using reduction 
 
 ~~~C
-#pragma omp parallel for reduction(+:distances[0:NBR\_POSSIBLE\_DISTANCES])
+#pragma omp parallel for reduction(+:distances[0:NBR_POSSIBLE_DISTANCES])
 for (int i = 0; i < numElements - 1; ++i)
     for (int j = i + 1; j < numElements; ++j)
         ++distances[dist(block[i], block[j])];
