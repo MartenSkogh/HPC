@@ -6,7 +6,7 @@ _Adam Tonderski_
 _Mårten Skogh_  
 
 ## Introduction
-The goal of this assignment was to implement a program that reads a arbitrary number of three dimentional cooridnates (positions) in space from a file and that calculates all distances between all points (with precission of two decimal values), counts how many times each distance occurs and write out the distance and the number of occurrences to stdout. The program shall also be parallelized using OpenMP and be fast enough to pass some requirements. 
+The goal of this assignment was to implement a program that reads a arbitrary number of three dimensional cooridnates (positions) in space from a file and that calculates all distances between all points (with precission of two decimal values), counts how many times each distance occurs and write out the distance and the number of occurrences to stdout. The program shall also be parallelized using OpenMP and be fast enough to pass some requirements. 
 
 ## Making and Running the Program
 
