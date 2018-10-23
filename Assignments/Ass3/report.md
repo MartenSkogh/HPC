@@ -29,7 +29,7 @@ All code is written in the file cell_distance.c. The program flow is as follows:
 
 ### Input
 
-The input to the program is a ASCII text file with three values on each line. Each value is to be seperated with a space character. Each value `x` has to be in the range `-10 > x > 10`, and the text format of each value has to be on the form `snn.nnn` where `s` is either a + or - sign, `n` is a decimal digit 0-9. No character can be left out, each value has to be six (6) characters long. 
+The input to the program is a ASCII text file with three values on each line. Each value is to be seperated with a space character. Each value `x` has to be in the range `-10 > x > 10`, and the text format of each value has to be on the form `snn.nnn` where `s` is either a plus (+) or minus (-) sign, `n` is a decimal digit 0-9. No character can be left out, each value has to be six (6) characters long. 
 
 Example input file containing 10 positions:
 ~~~
