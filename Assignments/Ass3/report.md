@@ -14,11 +14,11 @@ Make the program by running
 `$ make`  
 The program is compiled with gcc and optimization flag -O3.  
 To run the program enter  
-`$ ./cell\_distance -t{number of threads} -b{size of reading block} [-f{/path/to/positions}]`  
-where the `-f` flag is optional, the default behavior is to search for a file called `cells` in the current working directory.
+`$ ./cell\_distance -t{number of threads} -b{size of reading block} -f{/path/to/positions}`  
+
 ## Program Overview
 
-All code is written in the file cell\_distance.c. The program flow is as follows:
+All code is written in the file cell_distance.c. The program flow is as follows:
 
 1. Parse input arguments. 
 2. Allocate memory and open the file.
@@ -80,14 +80,14 @@ The program was not allowed to consume more than 1 GiBi byte of memory at a give
 4. New blocks are read into block2 and processed until the end of the file is reached.
 5. A new block1 is read and (2.-4.) is repeated until every distance has been calculated. 
 
-The size in bytes of every row is known since it has a defined format. And the default block size times two (one for each block) times the size of a row will be smaller than 1 Gibi byte. Thus the memory requirement is fulfilled. 
+The size in bytes of every row is known since it has a defined format. With the default block size of 1e4, the memory requirements for both blocks are roughly \$$ 4 * 10^4 * 3 * 2 $$ bytes which is 240 kB. This is obviously much smaller than 1 Gibi byte and thus the memory requirement is fulfilled.
 
 ## Program description
 
 The distances were to be calculated with two decimals precision (with some rounding error tolerated). Another simplification was the range of the coordinated that was assumed to be [-10,10]. This made the number of possible distances manageble and to keep count over the distances, an integer array called `distances`, with every index corresponding to a distance, is allocated and set to zero. The number of possible distances are calculated as the maximum distance times 100 (for two decimals)
 rounded upward, ceil(sqrt(20^2 + 20^2 + 20^2)\*100).
 
-The blocks, `block1` and `block2`, are allocated as double float arrays.  
+The blocks, `block1` and `block2`, are allocated as 2d float arrays.  
 
 To keep track over where in the file the blocks "are", the integers `blockPosition1` and `blockPosition2` are used. The block-reading loop is a w double while-loop. A new `block1` is read for as long as `blockPosition1` is not a multiple of `blockSize`, i.e. when the latest read block is at the end of the file. A similiar condion is used for the inner while-loop thats loops over different data in `block2`. 
 
