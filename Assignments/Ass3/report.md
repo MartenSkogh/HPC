@@ -64,12 +64,12 @@ The only files that are required to compile the program are:
 ### Functions
 In addition to our `main` function, several other functions are used. These are listed below:
 
-1. `int readBlock(float\*\* block, int numPoints, FILE \*fp, long int startLine)`: Finds the right position in the file pointer `fp` using `fseek` with an offset `startLine\*CHARACTERS\_IN\_LINE*sizeof(char)`. It then reads one line at a time using `fread` and calls the function `parseLine` to put the data in `block`.
-2. `void parseLine(float\* destination, char\* line)`: Parses the chars in `line` to floats and stores them in `destination` (a position in block)
-4. `int dist(float \*point1, float \*point2)`: Calculates the cartesian distance between `point1` and `point2` and multiplies is with 100.
-5. `void compute\_inner\_distances(float\*\* block, int numElements)`: Loops through `block` using `numElements` and updates the global array `distances` using the function `dist`.
-6. `void compute\_cross\_distances(float \*\*block1, float \*\*block2, int numElements1, int numElements2)`: Calculates the distances between every point in `block1` and every point in `block2` using the number of elements in the blocks,`numElements1`and `numElements2`. The global array `distances` is updated using the function `dist`.
-7. `void write\_distances()`: Prints ´((float)i)/100´ and `distances[i]` for every index `i` of `distances`.
+1. `int readBlock(float** block, int numPoints, FILE *fp, long int startLine)`: Finds the right position in the file pointer `fp` using `fseek` with an offset `startLine*CHARACTERS_IN_LINE*sizeof(char)`. It then reads one line at a time using `fread` and calls the function `parseLine` to put the data in `block`.
+2. `void parseLine(float* destination, char* line)`: Parses the chars in `line` to floats and stores them in `destination` (a position in block)
+4. `int dist(float *point1, float *point2)`: Calculates the cartesian distance between `point1` and `point2` and multiplies is with 100.
+5. `void compute_inner_distances(float** block, int numElements)`: Loops through `block` using `numElements` and updates the global array `distances` using the function `dist`.
+6. `void compute_cross_distances(float **block1, float **block2, int numElements1, int numElements2)`: Calculates the distances between every point in `block1` and every point in `block2` using the number of elements in the blocks,`numElements1`and `numElements2`. The global array `distances` is updated using the function `dist`.
+7. `void write_distances()`: Prints ´((float)i)/100´ and `distances[i]` for every index `i` of `distances`.
 
 ### Paralellization 
 The parallelization is done using OpenMP. In the the two functions for calculating distances, the double for-loops are parallelized using reduction 
@@ -95,7 +95,7 @@ VAD HADE VI FÖR PRAGMA FÖRST NÄR DET VAR LÅNGSAMT?
 ## Results
 Here, the timing results are presented for different number of positions and number of threads. The benchmarking is done by running 100 times and taking the average runtime. 
 
-`$ ./cell\_distance -t{T} -fcell\_{N}`
+`$ ./cell_distance -t{T} -fcell_{N}`
 | T     | N |   Time     |
 |------:|:--:|:------:|
 |1  | 1e4 | 0.29 s|
