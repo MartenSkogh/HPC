@@ -37,7 +37,7 @@ int readBlock(float** block, int numPoints, FILE *fp, long int startLine)
 {
     // Read until the number of lines is equal to blockSize or we reach the end of the file. Return number of lines that were read
     if (DEBUG)
-	printf("starting to read block at position %d\n", startLine);
+	    printf("starting to read block at position %d\n", startLine);
     int fileSeek = fseek(fp,startLine*CHARACTERS_IN_LINE*sizeof(char),SEEK_SET);
     char line[CHARACTERS_IN_LINE];
     int lineNumber;
@@ -67,7 +67,7 @@ void compute_inner_distances(float** block, int numElements)
     // Parallelize this shit to hell (maybe use some reduce thingy)
     #pragma omp parallel for reduction(+:distances[0:NBR_POSSIBLE_DISTANCES])
     for (int i = 0; i < numElements - 1; ++i)
-        for(int j = i + 1; j < numElements; ++j)
+        for (int j = i + 1; j < numElements; ++j)
             ++distances[dist(block[i], block[j])];
 }
 
@@ -77,7 +77,7 @@ void compute_cross_distances(float **block1, float **block2, int numElements1, i
     // Parallelize this shit to hell (maybe use some reduce thingy)
     #pragma omp parallel for reduction(+:distances[0:NBR_POSSIBLE_DISTANCES])
     for (int i = 0; i < numElements1; ++i)
-        for(int j = 0; j < numElements2; ++j)
+        for (int j = 0; j < numElements2; ++j)
             ++distances[dist(block1[i], block2[j])];
 }
 

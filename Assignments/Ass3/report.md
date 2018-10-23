@@ -93,9 +93,11 @@ Here, the timing results are presented for different number of positions and num
 | T     | N |   Time     |
 |------:|:--:|:------:|
 |1  | 1e4 | 0.29 s|
-|5  | 1e5 ||
-|10 | 1e5 ||
-|20 | 1e5 ||
+|5  | 1e5 | 5.09 s|
+|10 | 1e5 | 3.20 s|
+|20 | 1e5 | 1.96 s|
+
+All runtimes are belowed the maximum runtimes defined in the assignment.
 
 
 
