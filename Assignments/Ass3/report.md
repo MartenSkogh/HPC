@@ -50,7 +50,7 @@ The program outputs to `stdout` a string of both distance and number of occurenc
 
 The output values are floored to closest value with two (2) decimal points.
 
-Example of the 13 first lines of the output given the input from the above section:
+Example of the 15 first lines of the output given the input from the above section:
 ~~~
 2.99 1
 5.54 1
