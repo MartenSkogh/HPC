@@ -50,6 +50,26 @@ The program outputs to `stdout` a string of both distance and number of occurenc
 
 The output values are floored to closest value with two (2) decimal points.
 
+Example of the 13 first lines of the output given the input from the above section:
+~~~
+2.99 1
+5.54 1
+5.84 1
+5.91 1
+6.06 1
+6.54 1
+7.94 1
+8.58 1
+9.39 1
+9.59 1
+9.64 1
+9.98 1
+9.99 1
+11.17 1
+11.68 1
+...
+~~~
+
 ## Limiting the memory usage
 
 The program was not allowed to consume more than 1 GiBi byte of memory at a given time. In order to fulfill this criterion, the positions in the file are read in blocks. The program has a variable determining the size of each block (as a number of rows). The size has a default value but can be set by the user using the flag `-b`. If the number of rows in the file is less or equal to the block size, all data is read at once. If the number of rows in the file is larger than the block size, the following happens:
