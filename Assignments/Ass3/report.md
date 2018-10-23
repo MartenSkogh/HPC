@@ -6,7 +6,7 @@ _Adam Tonderski_
 _Mårten Skogh_  
 
 ## Introduction
-The goal of this assignment was to implement a program that reads a number of positions in space from a file, calculates all the distances between points, counts how many times each distance occurs and write out the distance and the number of occurrences to stdout. The program shall also be parallelized using OpenMP and be fast enough to pass some requirements. 
+The goal of this assignment was to implement a program that reads a arbitrary number of three dimentional cooridnates (positions) in space from a file and that calculates all distances between all points (with precission of two decimal values), counts how many times each distance occurs and write out the distance and the number of occurrences to stdout. The program shall also be parallelized using OpenMP and be fast enough to pass some requirements. 
 
 ## Making and Running the Program
 
@@ -17,6 +17,7 @@ To run the program enter
 `$ ./cell\_distance -t{number of threads} -b{size of reading block} -f{/path/to/positions}`  
 
 ## Program Overview
+
 All code is written in the file cell\_distance.c. The program flow is as follows:
 
 1. Parse input arguments. 
@@ -24,6 +25,30 @@ All code is written in the file cell\_distance.c. The program flow is as follows
 3. Combine reading of positions and calculation of distances block-wise. 
 4. Write distances and number of times each distance occurrs. 
 5. Free memory and exit.
+
+### Input
+
+The input to the program is a ASCII text file with three values on each line. Each value is to be seperated with a space character. Each value `x` has to be in the range `-10 > x > 10`, and the text format of each value has to be on the form `snn.nnn` where `s` is either a + or - sign, `n` is a decimal digit 0-9. No character can be left out, each value has to be six (6) characters long. 
+
+Example input file containing 10 positions:
+~~~
++01.330 -09.035 +03.489
+-03.718 +02.517 -05.995
++09.568 -03.464 +02.645
+-09.620 +09.279 +08.828
++07.630 -02.290 +00.679
++04.113 -03.399 +05.299
+-00.994 +07.313 -06.523
++03.376 -03.614 -06.657
++01.304 +09.381 -01.559
+-04.238 -07.514 +08.942
+~~~
+
+### Output
+
+The program outputs to `stdout` a string of both distance and number of occurences where the distance and number of occurences are seperated by a single space character and the different distances are seperated by a newline. The ouptut is formated as `(n)n.nn` where the total length of the string is either four or five characters, there is no padding for distances below 10.
+
+The output values are floored to closest value with two (2) decimal points.
 
 ## Limiting the memory usage
 
@@ -71,7 +96,7 @@ In addition to our `main` function, several other functions are used. These are 
 6. `void compute_cross_distances(float **block1, float **block2, int numElements1, int numElements2)`: Calculates the distances between every point in `block1` and every point in `block2` using the number of elements in the blocks,`numElements1`and `numElements2`. The global array `distances` is updated using the function `dist`.
 7. `void write_distances()`: Prints ´((float)i)/100´ and `distances[i]` for every index `i` of `distances`.
 
-### Paralellization 
+### Parallelization 
 The parallelization is done using OpenMP. In the the two functions for calculating distances, the double for-loops are parallelized using reduction 
 
 ~~~C
@@ -104,5 +129,5 @@ Here, the timing results are presented for different number of positions and num
 |10    | 1e5 | 3.20 s |
 |20    | 1e5 | 1.96 s |
 
-All runtimes are belowed the maximum runtimes defined in the assignment.
+All runtimes are below the maximum runtimes defined in the assignment.
 
