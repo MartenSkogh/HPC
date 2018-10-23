@@ -125,7 +125,7 @@ for (int i = 0; i < numElements - 1; ++i)
     for (int j = i + 1; j < numElements; ++j)
         ++distances[dist(block[i], block[j])];
 ~~~
- Reduction is used because it is fast. An alternative would be:
+ Reduction is used because it is fast. An alternative which was tested was
 ~~~C
 #pragma omp parallel for shared(distances)
 for (int i = 0; i < numElements - 1; ++i)
@@ -133,9 +133,9 @@ for (int i = 0; i < numElements - 1; ++i)
         #pragma omp atomic
         ++distances[dist(block[i], block[j])];
 ~~~
-.
+This was however more than ten times slower than reduction.
+
 In `readBlock`, `#pragma omp task` is used when parsing the lines. VARFÖR THO?
-VAD HADE VI FÖR PRAGMA FÖRST NÄR DET VAR LÅNGSAMT?
 
 ## Results
 Here, the timing results are presented for different number of positions and number of threads. The benchmarking is done by running 100 times and taking the average runtime. 
