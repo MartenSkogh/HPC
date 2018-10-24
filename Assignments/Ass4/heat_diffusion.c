@@ -7,7 +7,7 @@
 #define DEBUG 0
 
 /*
-char *kernel_program = "__kernel void heat_step(__global const float * read, __global const float * write, int width, int height)"
+char *kernel_program = "__kernel void heat_step(__global float * read, __global float * write, int width, int height)"
     "{"
     "int ix = get_global_id(0);"
     "int jx = get_global_id(1);"
@@ -17,7 +17,7 @@ char *kernel_program = "__kernel void heat_step(__global const float * read, __g
     "}";
 */
 
-char *kernel_program = "__kernel void heat_step(__global const float * read, __global const float * write, int width, int height)"
+char *kernel_program = "__kernel void heat_step(__global float * read, __global float * write, int width, int height)"
     "{"
     "int ix = get_global_id(0);"
     "int jx = get_global_id(1);"
@@ -85,10 +85,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     cl_mem box_matrix_1, box_matrix_2;
-    box_matrix_1  = clCreateBuffer(context, CL_MEM_READ_WRITE,
-        box_height * box_width * sizeof(float), NULL, NULL);
-    box_matrix_2  = clCreateBuffer(context, CL_MEM_READ_WRITE,
-        box_height * box_width * sizeof(float), NULL, NULL);
+    box_matrix_1  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(float), NULL, NULL);
+    box_matrix_2  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(float), NULL, NULL);
     
     // Allocate memory
     float * a = malloc(box_height*box_width*sizeof(float));
