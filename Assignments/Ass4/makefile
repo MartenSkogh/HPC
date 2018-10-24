@@ -17,7 +17,7 @@ $(OBJS): $(SRCS)
 
 test: 
 	make
-	./heat_diffusion 6 6 -i10 -d0.02 -n1
+	./heat_diffusion 6 6 -i1e10 -d0.02 -n1
 
 clean: 
 	rm $(OBJS)
