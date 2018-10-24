@@ -96,8 +96,8 @@ int main(int argc, char *argv[]) {
     {
         a[ix] = 0;
     }
-    for (int ix = box_height / 2; ix <= box_height / 2 + 1 - (box_height % 2); ++ix)
-        for (int jx = box_width / 2; jx <= box_width / 2 + 1 - (box_width % 2); ++jx)
+    for (int ix = box_height / 2; ix >= box_height / 2 - 1 + (box_height % 2); --ix)
+        for (int jx = box_width / 2; jx >= box_width / 2 - 1 + (box_width % 2); --jx)
         {
             a[ix * box_width + jx] = central_value;
         }
