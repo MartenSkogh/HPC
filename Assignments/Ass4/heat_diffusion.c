@@ -7,7 +7,7 @@
 #define DEBUG 0
 
 
-char *kernel_program = "__kernel void heat_step(__global float * read, __global float * write, int width, int height, float c)"
+char *kernel_program = "__kernel void heat_step(__global double * read, __global double * write, int width, int height, double c)"
     "{"
     "int ix = get_global_id(0); "
     "int jx = get_global_id(1); "
@@ -18,7 +18,7 @@ char *kernel_program = "__kernel void heat_step(__global float * read, __global 
         " - read[ix * width + jx]); "
     "}";
 
-// char *kernel_program = "__kernel void heat_step(__global float * read, __global float * write, int width, int height)"
+// char *kernel_program = "__kernel void heat_step(__global double * read, __global double * write, int width, int height)"
 //     "{"
 //     "int ix = get_global_id(0);"
 //     "int jx = get_global_id(1);"
@@ -39,8 +39,8 @@ int main(int argc, char *argv[]) {
     printf("Number of platforms: %d \n", (int)nmb_platforms);	
     int box_height;
     int box_width;
-    float central_value;
-    float diff_const;
+    double central_value;
+    double diff_const;
     int nbr_iterations;
     // Parse command line arguments
     box_width = atoi(argv[1]);
@@ -86,12 +86,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     cl_mem box_matrix_1, box_matrix_2;
-    box_matrix_1  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(float), NULL, NULL);
-    box_matrix_2  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(float), NULL, NULL);
+    box_matrix_1  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
+    box_matrix_2  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
     
     // Allocate memory
-    float * a = malloc(box_height*box_width*sizeof(float));
-    float * b = malloc(box_height*box_width*sizeof(float));
+    double * a = malloc(box_height*box_width*sizeof(double));
+    double * b = malloc(box_height*box_width*sizeof(double));
     for (size_t ix=0; ix < box_height*box_width; ++ix)
     {
         a[ix] = 0;
@@ -107,9 +107,9 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < box_height*box_width; i++)
     	printf("%f ",a[i]);
     clEnqueueWriteBuffer(command_queue, box_matrix_1, CL_TRUE,
-        0, box_height*box_width*sizeof(float), a, 0, NULL, NULL);
+        0, box_height*box_width*sizeof(double), a, 0, NULL, NULL);
     // clEnqueueWriteBuffer(command_queue, input_buffer_b, CL_TRUE,
-    //     0, width_b*height_b*sizeof(float), b, 0, NULL, NULL);
+    //     0, width_b*height_b*sizeof(double), b, 0, NULL, NULL);
     
     printf("4\n");
     cl_program program = clCreateProgramWithSource(context, 1, (const char **) &kernel_program, NULL, &error);
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &box_matrix_2);
     clSetKernelArg(kernel, 2, sizeof(int), &box_width);
     clSetKernelArg(kernel, 3, sizeof(int), &box_height);
-    clSetKernelArg(kernel, 4, sizeof(float), &diff_const);
+    clSetKernelArg(kernel, 4, sizeof(double), &diff_const);
 
     printf("6\n");
     const size_t global[] = {box_height, box_width};
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
     }
 
     clEnqueueReadBuffer(command_queue, box_matrix_2, CL_TRUE,
-        0, box_height*box_width*sizeof(float), b, 0, NULL, NULL);
+        0, box_height*box_width*sizeof(double), b, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
         printf("cannot read buffer 0\n");
         return 1;
