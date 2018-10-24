@@ -13,7 +13,7 @@ char *kernel_program = "__kernel void heat_step(__global const float * read, __g
     "int jx = get_global_id(1);"
     "if (ix == 0 || ix == width || jx == 0 || jx == height)"
     "return;"
-    "write[ix * width_b + jx] = read[(ix+1) * width_b + jx] + read[(ix-1) * width_b + jx] + read[ix * width_b + jx + 1] + read[ix * width_b + jx - 1] - read[ix * width_b + jx];"
+    "write[ix * width + jx] = read[(ix+1) * width + jx] + read[(ix-1) * width + jx] + read[ix * width + jx + 1] + read[ix * width + jx - 1] - read[ix * width + jx];"
     "}";
 */
 
@@ -21,7 +21,7 @@ char *kernel_program = "__kernel void heat_step(__global const float * read, __g
     "{"
     "int ix = get_global_id(0);"
     "int jx = get_global_id(1);"
-    "write[ix * width_b + jx] = 1;"
+    "write[ix * width + jx] = 1;"
     "}";
 
 
