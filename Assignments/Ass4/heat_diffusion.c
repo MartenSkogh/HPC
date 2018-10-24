@@ -18,11 +18,12 @@ char *kernel_program = "__kernel void heat_step(__global double * read, __global
         " - read[ix * width + jx]); "
     "}";
 
+
 void print_matrix(double *vector, int height, int width){
     for (int i = 1; i < height-1; ++i) { 
         for (int j = 1; j < width-1; ++j)
 	    printf("%.2e ",vector[i*width+j]);
-        printf("\n");
+    	printf("\n");
     }
 }
 
@@ -143,13 +144,7 @@ int main(int argc, char *argv[]) {
         printf("cannot create kernel 0\n");
         return 1;
     }
-   /*
-    clSetKernelArg(kernel, 0, sizeof(cl_mem), &box_matrix_1);
-    clSetKernelArg(kernel, 1, sizeof(cl_mem), &box_matrix_2);
-    clSetKernelArg(kernel, 2, sizeof(int), &box_width);
-    clSetKernelArg(kernel, 3, sizeof(int), &box_height);
-    clSetKernelArg(kernel, 4, sizeof(double), &diff_const);
-    */
+    
     for (i = 0; i < nbr_iterations; ++i) {    
         clSetKernelArg(kernel, 0, sizeof(cl_mem), &box_matrix_1);
         clSetKernelArg(kernel, 1, sizeof(cl_mem), &box_matrix_2);
@@ -184,6 +179,8 @@ int main(int argc, char *argv[]) {
 	b = tmp2;
 
     }
+    
     print_matrix(b,box_height,box_width);
+    
     return 0;
 }
