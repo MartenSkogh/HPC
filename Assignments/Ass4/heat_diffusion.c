@@ -119,9 +119,18 @@ int main(int argc, char *argv[]) {
     printf("4.2\n");
     error = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (error != CL_SUCCESS) {
-        printf("cannot build program 0\n");
-        return 1;
+        printf("cannot build program. log:\n");
+
+        size_t log_size = 0;
+        clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
+        char * log = calloc(log_size, sizeof(char));
+        if (log == NULL) {
+            printf("could not allocate memory\n");
+            return 1;
+        }
     }
+    
     printf("5\n");
     cl_kernel kernel = clCreateKernel(program, "heat_step", &error);
     if (error != CL_SUCCESS) {
