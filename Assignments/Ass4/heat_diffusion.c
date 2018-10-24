@@ -26,10 +26,11 @@ char *kernel_program = "__kernel void heat_step(__global float * read, __global 
 //     "}";
 
 void print_matrix(float *vector, int height, int width){
-    for (int i = 0; i < height; ++i) 
+    for (int i = 0; i < height; ++i) { 
         for (int j = 0; j < width; ++j)
 	    printf("%f ",vector[i*width+j]);
         printf("\n");
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -110,8 +111,8 @@ int main(int argc, char *argv[]) {
     
     printf("3\n");
     		
-    for (i = 0; i < box_height*box_width; i++)
-    	printf("%f ",a[i]);
+    print_matrix(a,box_height,box_width);
+
     clEnqueueWriteBuffer(command_queue, box_matrix_1, CL_TRUE,
         0, box_height*box_width*sizeof(float), a, 0, NULL, NULL);
     // clEnqueueWriteBuffer(command_queue, input_buffer_b, CL_TRUE,
