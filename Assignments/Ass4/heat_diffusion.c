@@ -7,10 +7,22 @@
 #define DEBUG 0
 
 /*
-char *kernel_program = "__kernel void mat_mul(    __global const float * read,    __global const float * write,    int width,    int height){    int ix = get_global_id(0);    int jx = get_global_id(1);      if (ix == 0 || ix == width || jx == 0 || jx == height)        return;    write[ix * width_b + jx] = read[(ix+1) * width_b + jx] + read[(ix-1) * width_b + jx] + read[ix * width_b + jx + 1] + read[ix * width_b + jx - 1] - read[ix * width_b + jx];}";
+char *kernel_program = "__kernel void mat_mul(__global const float * read, __global const float * write, int width, int height)"
+    "{"
+    "int ix = get_global_id(0);"
+    "int jx = get_global_id(1);"
+    "if (ix == 0 || ix == width || jx == 0 || jx == height)"
+    "return;"
+    "write[ix * width_b + jx] = read[(ix+1) * width_b + jx] + read[(ix-1) * width_b + jx] + read[ix * width_b + jx + 1] + read[ix * width_b + jx - 1] - read[ix * width_b + jx];"
+    "}";
 */
-char *kernel_program = "__kernel void mat_mul(    __global const float * read,    __global const float * write,    int width,    int height){    int ix = get_global_id(0);    int jx = get_global_id(1); for (int i = 0; i < width*height;"
 
+char *kernel_program = "__kernel void mat_mul(__global const float * read, __global const float * write, int width, int height)"
+    "{"
+    "int ix = get_global_id(0);"
+    "int jx = get_global_id(1);"
+    "write[ix * width_b + jx] = 1;"
+    "}";
 
 
 int main(int argc, char *argv[]) {
