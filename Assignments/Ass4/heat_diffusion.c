@@ -73,12 +73,15 @@ int main(int argc, char *argv[]) {
     0
     };
     context = clCreateContext(properties, 1, &device_id, NULL, NULL, &error);    
-    
+    if (error != CL_SUCCESS) {
+        printf("cannot create context\n");
+        return 1;
+    }
     printf("2\n");
     cl_command_queue command_queue;
     command_queue = clCreateCommandQueue(context, device_id, 0, &error);
     if (error != CL_SUCCESS) {
-        printf("cannot create context\n");
+        printf("cannot create queue\n");
         return 1;
     }
     cl_mem box_matrix_1, box_matrix_2;
@@ -129,8 +132,13 @@ int main(int argc, char *argv[]) {
             printf("could not allocate memory\n");
             return 1;
         }
+        clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG,
+            log_size, log, NULL);
+        printf( "%s\n", log );
+        free(log);
+        return 1;
     }
-    
+
     printf("5\n");
     cl_kernel kernel = clCreateKernel(program, "heat_step", &error);
     if (error != CL_SUCCESS) {
