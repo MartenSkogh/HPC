@@ -11,7 +11,7 @@ char *kernel_program = "__kernel void heat_step(__global float * read, __global 
     "{"
     "int ix = get_global_id(0); "
     "int jx = get_global_id(1); "
-    "if (ix == 0 || ix == width || jx == 0 || jx == height) "
+    "if (ix == 0 || ix == width - 1 || jx == 0 || jx == height - 1) "
         "return; "
     "write[ix * width + jx] = read[ix * width + jx] + c * ( "
         "(read[(ix+1) * width + jx] + read[(ix-1) * width + jx] + read[ix * width + jx + 1] + read[ix * width + jx - 1])/4"
@@ -103,8 +103,8 @@ int main(int argc, char *argv[]) {
     {
         a[ix] = 0;
     }
-    for (int ix = box_height / 2; ix <= box_height / 2 + 1 - (box_height % 2); ++ix)
-        for (int jx = box_width / 2; jx <= box_width / 2 + 1 - (box_width % 2); ++jx)
+    for (int ix = box_height / 2; ix >= box_height / 2 - 1 + (box_height % 2); --ix)
+        for (int jx = box_width / 2; jx >= box_width / 2 - 1 + (box_width % 2); --jx)
         {
             a[ix * box_width + jx] = central_value;
         }
