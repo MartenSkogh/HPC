@@ -25,6 +25,12 @@ char *kernel_program = "__kernel void heat_step(__global float * read, __global 
 //     "write[ix * width + jx] = 1;"
 //     "}";
 
+void print_matrix(float *vector, int height, int width){
+    for (int i = 0; i < height; ++i) 
+        for (int j = 0; j < width; ++j)
+	    printf("%f ",vector[i*width+j]);
+        printf("\n");
+}
 
 int main(int argc, char *argv[]) {
     size_t i, j;     
@@ -165,7 +171,8 @@ int main(int argc, char *argv[]) {
         printf("cannot read buffer 0\n");
         return 1;
     }
-    for (i = 0; i < box_height*box_width; i++)
-    	printf("%f ",b[i]);
+    
+    print_matrix(b,box_height,box_width);
+    
     return 0;
 }
