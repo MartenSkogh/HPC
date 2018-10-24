@@ -117,7 +117,11 @@ int main(int argc, char *argv[]) {
     }
 
     printf("4.2\n");
-    clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+    error = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+    if (error != CL_SUCCESS) {
+        printf("cannot build program 0\n");
+        return 1;
+    }
     printf("5\n");
     cl_kernel kernel = clCreateKernel(program, "heat_step", &error);
     if (error != CL_SUCCESS) {
