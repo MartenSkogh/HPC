@@ -120,22 +120,30 @@ int main(int argc, char *argv[]) {
     clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     printf("5\n");
     cl_kernel kernel = clCreateKernel(program, "heat_step", &error);
+    if (error != CL_SUCCESS) {
+        printf("cannot create kernel 0\n");
+        return 1;
+    }
     clSetKernelArg(kernel, 0, sizeof(cl_mem), &box_matrix_1);
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &box_matrix_2);
     clSetKernelArg(kernel, 2, sizeof(int), &box_width);
     clSetKernelArg(kernel, 3, sizeof(int), &box_height);
-    if (error != CL_SUCCESS) {
-        printf("cannot set arg\n");
-        return 1;
-    }
 
     printf("6\n");
     const size_t global[] = {box_height, box_width};
     clEnqueueNDRangeKernel(command_queue, kernel, 2,
-        NULL, (const size_t *)&global, NULL, 0, NULL, NULL);
+        NULL, (const size_t *)&global, NULL, 0, NULL, &error);
+    if (error != CL_SUCCESS) {
+        printf("cannot enque kernel 0\n");
+        return 1;
+    }
 
     clEnqueueReadBuffer(command_queue, box_matrix_2, CL_TRUE,
-        0, box_height*box_width*sizeof(float), b, 0, NULL, NULL);
+        0, box_height*box_width*sizeof(float), b, 0, NULL, &error);
+    if (error != CL_SUCCESS) {
+        printf("cannot read buffer 0\n");
+        return 1;
+    }
     for (i = 0; i < box_height*box_width; i++)
     	printf("%f ",b[i]);
     return 0;
