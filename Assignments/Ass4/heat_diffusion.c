@@ -7,13 +7,15 @@
 #define DEBUG 0
 
 
-char *kernel_program = "__kernel void heat_step(__global float * read, __global float * write, int width, int height)"
+char *kernel_program = "__kernel void heat_step(__global float * read, __global float * write, int width, int height, float c)"
     "{"
-    "int ix = get_global_id(0);"
-    "int jx = get_global_id(1);"
-    "if (ix == 0 || ix == width || jx == 0 || jx == height)"
-    "return;"
-    "write[ix * width + jx] = read[(ix+1) * width + jx] + read[(ix-1) * width + jx] + read[ix * width + jx + 1] + read[ix * width + jx - 1] - read[ix * width + jx];"
+    "int ix = get_global_id(0); "
+    "int jx = get_global_id(1); "
+    "if (ix == 0 || ix == width || jx == 0 || jx == height) "
+        "return; "
+    "write[ix * width + jx] = read[ix * width + jx] + c * ( "
+        "(read[(ix+1) * width + jx] + read[(ix-1) * width + jx] + read[ix * width + jx + 1] + read[ix * width + jx - 1])/4"
+        " - read[ix * width + jx]); "
     "}";
 
 // char *kernel_program = "__kernel void heat_step(__global float * read, __global float * write, int width, int height)"
@@ -146,6 +148,7 @@ int main(int argc, char *argv[]) {
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &box_matrix_2);
     clSetKernelArg(kernel, 2, sizeof(int), &box_width);
     clSetKernelArg(kernel, 3, sizeof(int), &box_height);
+    clSetKernelArg(kernel, 4, sizeof(float), &diff_const);
 
     printf("6\n");
     const size_t global[] = {box_height, box_width};
