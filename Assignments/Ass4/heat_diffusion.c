@@ -6,7 +6,7 @@
 
 #define DEBUG 0
 
-/*
+
 char *kernel_program = "__kernel void heat_step(__global float * read, __global float * write, int width, int height)"
     "{"
     "int ix = get_global_id(0);"
@@ -15,14 +15,13 @@ char *kernel_program = "__kernel void heat_step(__global float * read, __global 
     "return;"
     "write[ix * width + jx] = read[(ix+1) * width + jx] + read[(ix-1) * width + jx] + read[ix * width + jx + 1] + read[ix * width + jx - 1] - read[ix * width + jx];"
     "}";
-*/
 
-char *kernel_program = "__kernel void heat_step(__global float * read, __global float * write, int width, int height)"
-    "{"
-    "int ix = get_global_id(0);"
-    "int jx = get_global_id(1);"
-    "write[ix * width + jx] = 1;"
-    "}";
+// char *kernel_program = "__kernel void heat_step(__global float * read, __global float * write, int width, int height)"
+//     "{"
+//     "int ix = get_global_id(0);"
+//     "int jx = get_global_id(1);"
+//     "write[ix * width + jx] = 1;"
+//     "}";
 
 
 int main(int argc, char *argv[]) {
