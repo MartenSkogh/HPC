@@ -25,10 +25,10 @@ char *kernel_program = "__kernel void heat_step(__global double * read, __global
 //     "write[ix * width + jx] = 1;"
 //     "}";
 
-void print_matrix(float *vector, int height, int width){
+void print_matrix(double *vector, int height, int width){
     for (int i = 0; i < height; ++i) { 
         for (int j = 0; j < width; ++j)
-	    printf("%f ",vector[i*width+j]);
+	    printf("%lf ",vector[i*width+j]);
         printf("\n");
     }
 }
