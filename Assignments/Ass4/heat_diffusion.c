@@ -47,10 +47,10 @@ int main(int argc, char *argv[]) {
     box_height = atoi(argv[2]);
     for ( i = 3; i < argc; ++i) {
         if (strncmp(argv[i],"-i",2) == 0) {
-            central_value = atoi(argv[i]+2);
+            central_value = atof(argv[i]+2);
         }
         else if (strncmp(argv[i],"-d",2) == 0) {
-            diff_const = atoi(argv[i]+2);
+            diff_const = atof(argv[i]+2);
         }
         // Take data file name as input
         else if (strncmp(argv[i],"-n",2) == 0) {
