@@ -17,15 +17,14 @@ $(OBJS): $(SRCS)
 
 test: 
 	make
-	./heat_diffusion 6 6 -i1e10 -d0.02 -n1
-
+	./heat_diffusion 3 3 -i1e10 -d0.02 -n2
 clean: 
 	rm $(OBJS)
 	rm $(TARGS)
 
 testrun :
 	rm -rf reports extracted distances
-	rm cell_distance.tar.gz
-	tar -czvf cell_distance.tar.gz $(SRCS) ./makefile ./report.md
+	rm heat_diffusion.tar.gz
+	tar -czvf heat_diffusion.tar.gz $(SRCS) ./makefile ./report.md
 	/home/hpc2018/a3_grading/check_submission.py cell_distance.tar.gz
 

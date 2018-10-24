@@ -11,24 +11,17 @@ char *kernel_program = "__kernel void heat_step(__global double * read, __global
     "{"
     "int ix = get_global_id(0); "
     "int jx = get_global_id(1); "
-    "if (ix == 0 || ix == width - 1 || jx == 0 || jx == height - 1) "
+    "if (ix == 0 || ix == width || jx == 0 || jx == height) "
         "return; "
     "write[ix * width + jx] = read[ix * width + jx] + c * ( "
         "(read[(ix+1) * width + jx] + read[(ix-1) * width + jx] + read[ix * width + jx + 1] + read[ix * width + jx - 1])/4"
         " - read[ix * width + jx]); "
     "}";
 
-// char *kernel_program = "__kernel void heat_step(__global double * read, __global double * write, int width, int height)"
-//     "{"
-//     "int ix = get_global_id(0);"
-//     "int jx = get_global_id(1);"
-//     "write[ix * width + jx] = 1;"
-//     "}";
-
-void print_matrix(float *vector, int height, int width){
-    for (int i = 0; i < height; ++i) { 
-        for (int j = 0; j < width; ++j)
-	    printf("%f ",vector[i*width+j]);
+void print_matrix(double *vector, int height, int width){
+    for (int i = 1; i < height-1; ++i) { 
+        for (int j = 1; j < width-1; ++j)
+	    printf("%.2e ",vector[i*width+j]);
         printf("\n");
     }
 }
@@ -50,8 +43,8 @@ int main(int argc, char *argv[]) {
     double diff_const;
     int nbr_iterations;
     // Parse command line arguments
-    box_width = atoi(argv[1]);
-    box_height = atoi(argv[2]);
+    box_width = atoi(argv[1]) + 2; // Add boundaries
+    box_height = atoi(argv[2]) + 2;
     for ( i = 3; i < argc; ++i) {
         if (strncmp(argv[i],"-i",2) == 0) {
             central_value = atof(argv[i]+2);
@@ -92,13 +85,14 @@ int main(int argc, char *argv[]) {
         printf("cannot create queue\n");
         return 1;
     }
-    cl_mem box_matrix_1, box_matrix_2;
+    cl_mem box_matrix_1, box_matrix_2, tmp1;
     box_matrix_1  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
     box_matrix_2  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
     
     // Allocate memory
     double * a = malloc(box_height*box_width*sizeof(double));
     double * b = malloc(box_height*box_width*sizeof(double));
+    double * tmp2 = malloc(box_height*box_width*sizeof(double));
     for (size_t ix=0; ix < box_height*box_width; ++ix)
     {
         a[ix] = 0;
@@ -113,8 +107,6 @@ int main(int argc, char *argv[]) {
     		
     print_matrix(a,box_height,box_width);
 
-    clEnqueueWriteBuffer(command_queue, box_matrix_1, CL_TRUE,
-        0, box_height*box_width*sizeof(double), a, 0, NULL, NULL);
     // clEnqueueWriteBuffer(command_queue, input_buffer_b, CL_TRUE,
     //     0, width_b*height_b*sizeof(double), b, 0, NULL, NULL);
     
@@ -151,29 +143,47 @@ int main(int argc, char *argv[]) {
         printf("cannot create kernel 0\n");
         return 1;
     }
+   /*
     clSetKernelArg(kernel, 0, sizeof(cl_mem), &box_matrix_1);
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &box_matrix_2);
     clSetKernelArg(kernel, 2, sizeof(int), &box_width);
     clSetKernelArg(kernel, 3, sizeof(int), &box_height);
     clSetKernelArg(kernel, 4, sizeof(double), &diff_const);
-
-    printf("6\n");
-    const size_t global[] = {box_height, box_width};
-    clEnqueueNDRangeKernel(command_queue, kernel, 2,
-        NULL, (const size_t *)&global, NULL, 0, NULL, NULL);
-    if (error != CL_SUCCESS) {
-        printf("cannot enque kernel 0\n");
-        return 1;
-    }
-
-    clEnqueueReadBuffer(command_queue, box_matrix_2, CL_TRUE,
-        0, box_height*box_width*sizeof(double), b, 0, NULL, NULL);
-    if (error != CL_SUCCESS) {
-        printf("cannot read buffer 0\n");
-        return 1;
-    }
+    */
+    for (i = 0; i < nbr_iterations; ++i) {    
+        clSetKernelArg(kernel, 0, sizeof(cl_mem), &box_matrix_1);
+        clSetKernelArg(kernel, 1, sizeof(cl_mem), &box_matrix_2);
+        clSetKernelArg(kernel, 2, sizeof(int), &box_width);
+        clSetKernelArg(kernel, 3, sizeof(int), &box_height);
+        clSetKernelArg(kernel, 4, sizeof(double), &diff_const);
     
+        clEnqueueWriteBuffer(command_queue, box_matrix_1, CL_TRUE,
+            0, box_height*box_width*sizeof(double), a, 0, NULL, NULL);
+           
+        const size_t global[] = {box_height, box_width};
+        clEnqueueNDRangeKernel(command_queue, kernel, 2,
+            NULL, (const size_t *)&global, NULL, 0, NULL, NULL);
+        if (error != CL_SUCCESS) {
+            printf("cannot enque kernel 0\n");
+            return 1;
+        }
+
+        clEnqueueReadBuffer(command_queue, box_matrix_2, CL_TRUE,
+            0, box_height*box_width*sizeof(double), b, 0, NULL, NULL);
+        if (error != CL_SUCCESS) {
+            printf("cannot read buffer 0\n");
+            return 1;
+        }
+    
+        tmp1 = box_matrix_2;
+        box_matrix_2 = box_matrix_1;
+        box_matrix_1 = tmp1;
+
+	tmp2 = a;
+	a = b;
+	b = tmp2;
+
+    }
     print_matrix(b,box_height,box_width);
-    
     return 0;
 }
