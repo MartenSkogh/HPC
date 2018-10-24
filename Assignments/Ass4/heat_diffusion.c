@@ -136,14 +136,14 @@ int main(int argc, char *argv[]) {
     printf("6\n");
     const size_t global[] = {box_height, box_width};
     clEnqueueNDRangeKernel(command_queue, kernel, 2,
-        NULL, (const size_t *)&global, NULL, 0, NULL, &error);
+        NULL, (const size_t *)&global, NULL, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
         printf("cannot enque kernel 0\n");
         return 1;
     }
 
     clEnqueueReadBuffer(command_queue, box_matrix_2, CL_TRUE,
-        0, box_height*box_width*sizeof(float), b, 0, NULL, &error);
+        0, box_height*box_width*sizeof(float), b, 0, NULL, NULL);
     if (error != CL_SUCCESS) {
         printf("cannot read buffer 0\n");
         return 1;
