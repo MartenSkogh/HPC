@@ -7,7 +7,7 @@
 #define DEBUG 0
 
 /*
-char *kernel_program = "__kernel void mat_mul(__global const float * read, __global const float * write, int width, int height)"
+char *kernel_program = "__kernel void heat_step(__global const float * read, __global const float * write, int width, int height)"
     "{"
     "int ix = get_global_id(0);"
     "int jx = get_global_id(1);"
@@ -17,7 +17,7 @@ char *kernel_program = "__kernel void mat_mul(__global const float * read, __glo
     "}";
 */
 
-char *kernel_program = "__kernel void mat_mul(__global const float * read, __global const float * write, int width, int height)"
+char *kernel_program = "__kernel void heat_step(__global const float * read, __global const float * write, int width, int height)"
     "{"
     "int ix = get_global_id(0);"
     "int jx = get_global_id(1);"
@@ -111,6 +111,11 @@ int main(int argc, char *argv[]) {
     
     printf("4\n");
     cl_program program = clCreateProgramWithSource(context, 1, (const char **) &kernel_program, NULL, &error);
+    if (error != CL_SUCCESS) {
+        printf("cannot create program\n");
+        return 1;
+    }
+
     printf("4.2\n");
     clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     printf("5\n");
@@ -119,6 +124,10 @@ int main(int argc, char *argv[]) {
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &box_matrix_2);
     clSetKernelArg(kernel, 2, sizeof(int), &box_width);
     clSetKernelArg(kernel, 3, sizeof(int), &box_height);
+    if (error != CL_SUCCESS) {
+        printf("cannot set arg\n");
+        return 1;
+    }
 
     printf("6\n");
     const size_t global[] = {box_height, box_width};
