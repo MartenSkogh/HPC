@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
     const size_t nmb_groups = global_size / local_size;
     const size_t len = box_width * box_height;
 
-    cl_mem output_buffer_c_sum;
+    cl_mem output_buffer_sum;
     output_buffer_sum  = clCreateBuffer(context, CL_MEM_READ_WRITE, nmb_groups * sizeof(cl_double), NULL, NULL);
 
     clSetKernelArg(kernel_sum, 0, sizeof(cl_mem), &matrix_buffer_write);
@@ -217,7 +217,7 @@ int main(int argc, char *argv[]) {
     clEnqueueNDRangeKernel(command_queue, kernel_sum, 1, NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
 
     double * sum = malloc(nmb_groups*sizeof(double));
-    clEnqueueReadBuffer(command_queue, output_buffer_c_sum, CL_TRUE, 0, nmb_groups*sizeof(double), c_sum, 0, NULL, NULL);
+    clEnqueueReadBuffer(command_queue, output_buffer_sum, CL_TRUE, 0, nmb_groups*sizeof(double), sum, 0, NULL, NULL);
 
     clFinish(command_queue);
 
@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
 
     // Calculate new average
     clEnqueueNDRangeKernel(command_queue, kernel_sum, 1, NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
-    clEnqueueReadBuffer(command_queue, output_buffer_c_sum, CL_TRUE, 0, nmb_groups*sizeof(double), c_sum, 0, NULL, NULL);
+    clEnqueueReadBuffer(command_queue, output_buffer_sum, CL_TRUE, 0, nmb_groups*sizeof(double), sum, 0, NULL, NULL);
     double absdiff_average = 0;
     for (size_t ix=0; ix < nmb_groups; ++ix)
         absdiff_average += sum[ix] / len;
