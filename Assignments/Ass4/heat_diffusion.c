@@ -245,6 +245,9 @@ int main(int argc, char *argv[]) {
     for (size_t ix=0; ix < nmb_groups; ++ix)
         absdiff_average += sum[ix] / len;
 
+    printf("average: %lf\n absdiff average: %lf\n", total_average, absdiff_average);
+
+
     // clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
     // if (error != CL_SUCCESS) {
     //     printf("cannot read buffer 0\n");
