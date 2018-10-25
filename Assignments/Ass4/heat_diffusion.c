@@ -55,8 +55,8 @@ char *program_source = "__kernel void heat_step(__global double * restrict read,
 
 
 void print_matrix(double *vector, int height, int width){
-    for (int i = 1; i < height-1; ++i) { 
-        for (int j = 1; j < width-1; ++j)
+    for (int i = 0; i < height; ++i) { 
+        for (int j = 0; j < width; ++j)
 	    printf("%.2e ",vector[i*width+j]);
     	printf("\n");
     }
