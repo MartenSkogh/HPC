@@ -184,9 +184,9 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         clFinish(command_queue);
-        tmp1 = matrix_buffer_write;
-        matrix_buffer_write = matrix_buffer_read;
-        matrix_buffer_read = tmp1;
+        // tmp1 = matrix_buffer_write;
+        // matrix_buffer_write = matrix_buffer_read;
+        // matrix_buffer_read = tmp1;
 
         if (DEBUG)
         {
