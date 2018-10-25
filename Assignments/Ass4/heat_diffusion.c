@@ -55,18 +55,6 @@ char *program_source = "__kernel void heat_step(__global double * restrict read,
     "}";
 
 
-cl_context context;
-cl_command_queue command_queue;
-cl_program program;
-cl_device_id device_id;
-cl_mem matrix_buffer_read, matrix_buffer_write;
-int box_height;
-int box_width;
-double central_value;
-double diff_const;
-int nbr_iterations;
-double * box_matrix;
-
 void print_matrix(double *vector, int height, int width){
     for (int i = 0; i < height; ++i) { 
         for (int j = 0; j < width; ++j)
@@ -77,13 +65,87 @@ void print_matrix(double *vector, int height, int width){
 }
 
 
-create_program()
-{
+int main(int argc, char *argv[]) {
+    size_t i, j;     
     cl_int error;
-    program = clCreateProgramWithSource(context, 1, (const char **) &program_source, NULL, &error);
+    
+    cl_platform_id platform_id;
+    cl_uint nmb_platforms;
+    if (clGetPlatformIDs(1,&platform_id, &nmb_platforms) != CL_SUCCESS) {
+        printf( "cannot get platform\n" );
+        return 1;           
+    }
+    printf("Number of platforms: %d \n", (int)nmb_platforms);	
+    int box_height;
+    int box_width;
+    double central_value;
+    double diff_const;
+    int nbr_iterations;
+    // Parse command line arguments
+    box_width = atoi(argv[1]);
+    box_height = atoi(argv[2]);
+    for ( i = 3; i < argc; ++i) {
+        if (strncmp(argv[i],"-i",2) == 0) {
+            central_value = atof(argv[i]+2);
+        }
+        else if (strncmp(argv[i],"-d",2) == 0) {
+            diff_const = atof(argv[i]+2);
+        }
+        // Take data file name as input
+        else if (strncmp(argv[i],"-n",2) == 0) {
+             nbr_iterations = atoi(argv[i]+2);            
+        }
+    }
+    const size_t len = box_width * box_height;
+    if (DEBUG)
+        printf("Running with c=%f \n", diff_const);
+
+    cl_device_id device_id;
+    cl_uint nmb_devices;
+    if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1,
+            &device_id, &nmb_devices) != CL_SUCCESS) {
+        printf( "cannot get device\n" );
+        return 1;
+    }
+
+    cl_context context;
+    cl_context_properties properties[] = {CL_CONTEXT_PLATFORM, (cl_context_properties) platform_id, 0};
+    context = clCreateContext(properties, 1, &device_id, NULL, NULL, &error);    
+    if (error != CL_SUCCESS) {
+        printf("cannot create context\n");
+        return 1;
+    }
+
+    cl_command_queue command_queue;
+    command_queue = clCreateCommandQueue(context, device_id, 0, &error);
+    if (error != CL_SUCCESS) {
+        printf("cannot create queue\n");
+        return 1;
+    }
+    cl_mem matrix_buffer_read, matrix_buffer_write, tmp1;
+    matrix_buffer_read  = clCreateBuffer(context, CL_MEM_READ_WRITE, len * sizeof(double), NULL, NULL);
+    matrix_buffer_write = clCreateBuffer(context, CL_MEM_READ_WRITE, len * sizeof(double), NULL, NULL);
+    
+    // Allocate memory
+    double * box_matrix = malloc(len*sizeof(double));
+    for (size_t ix=0; ix < len; ++ix)
+    {
+        box_matrix[ix] = 0;
+    }
+    for (int ix = box_height / 2; ix >= box_height / 2 - 1 + (box_height % 2); --ix)
+        for (int jx = box_width / 2; jx >= box_width / 2 - 1 + (box_width % 2); --jx)
+            box_matrix[ix * box_width + jx] = central_value;
+    
+    
+    if (DEBUG)
+        print_matrix(box_matrix,box_height,box_width);
+
+    clEnqueueWriteBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+
+    cl_program program = clCreateProgramWithSource(context, 1, (const char **) &program_source, NULL, &error);
     if (error != CL_SUCCESS) {
         printf("cannot create program\n");
-        exit(1);
+        return 1;
     }
 
     error = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
@@ -96,25 +158,20 @@ create_program()
         char * log = calloc(log_size, sizeof(char));
         if (log == NULL) {
             printf("could not allocate memory\n");
-            exit(1);
+            return 1;
         }
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
         printf( "%s\n", log );
         free(log);
-        exit(1);
+        return 1;
     }
-    return cl_program;
-}
 
-
-void run_heat_step_iterations(const size_t global[], const size_t local[], char use_local)
-{
-    cl_int error;
     cl_kernel heat_step_kernel = clCreateKernel(program, "heat_step", &error);
     if (error != CL_SUCCESS) {
         printf("cannot create kernel 0\n");
         return 1;
     }
+
 
     if (SUPERDEBUG)
     {
@@ -137,10 +194,12 @@ void run_heat_step_iterations(const size_t global[], const size_t local[], char 
         print_matrix(box_matrix, box_height, box_width);
     }
 
-
-    cl_mem tmp1;
+    const size_t global[] = {box_height, box_width};
+    const size_t local[] = {20, 20};
+    char use_local =  (global[0] % local[0] == 0  || global[1] % local[1] == 0); // only use local size if global size is divisible by it
 
     clSetKernelArg(heat_step_kernel, 2, sizeof(double), &diff_const);
+
     for (i = 0; i < nbr_iterations; ++i) {    
         clSetKernelArg(heat_step_kernel, 0, sizeof(cl_mem), &matrix_buffer_read);
         clSetKernelArg(heat_step_kernel, 1, sizeof(cl_mem), &matrix_buffer_write);
@@ -174,87 +233,6 @@ void run_heat_step_iterations(const size_t global[], const size_t local[], char 
             print_matrix(box_matrix, box_height, box_width);
         }
     }
-}
-
-
-int main(int argc, char *argv[]) {
-    size_t i, j;     
-    cl_int error;
-    
-    cl_platform_id platform_id;
-    cl_uint nmb_platforms;
-    if (clGetPlatformIDs(1,&platform_id, &nmb_platforms) != CL_SUCCESS) {
-        printf( "cannot get platform\n" );
-        return 1;           
-    }
-    printf("Number of platforms: %d \n", (int)nmb_platforms);	
-
-    // Parse command line arguments
-    box_width = atoi(argv[1]);
-    box_height = atoi(argv[2]);
-    for ( i = 3; i < argc; ++i) {
-        if (strncmp(argv[i],"-i",2) == 0) {
-            central_value = atof(argv[i]+2);
-        }
-        else if (strncmp(argv[i],"-d",2) == 0) {
-            diff_const = atof(argv[i]+2);
-        }
-        // Take data file name as input
-        else if (strncmp(argv[i],"-n",2) == 0) {
-             nbr_iterations = atoi(argv[i]+2);            
-        }
-    }
-    const size_t len = box_width * box_height;
-    if (DEBUG)
-        printf("Running with c=%f \n", diff_const);
-
-    
-    cl_uint nmb_devices;
-    if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1,
-            &device_id, &nmb_devices) != CL_SUCCESS) {
-        printf( "cannot get device\n" );
-        return 1;
-    }
-
-    cl_context_properties properties[] = {CL_CONTEXT_PLATFORM, (cl_context_properties) platform_id, 0};
-    context = clCreateContext(properties, 1, &device_id, NULL, NULL, &error);    
-    if (error != CL_SUCCESS) {
-        printf("cannot create context\n");
-        return 1;
-    }
-
-    command_queue = clCreateCommandQueue(context, device_id, 0, &error);
-    if (error != CL_SUCCESS) {
-        printf("cannot create queue\n");
-        return 1;
-    }
-    
-    matrix_buffer_read  = clCreateBuffer(context, CL_MEM_READ_WRITE, len * sizeof(double), NULL, NULL);
-    matrix_buffer_write = clCreateBuffer(context, CL_MEM_READ_WRITE, len * sizeof(double), NULL, NULL);
-    
-    // Allocate memory
-    box_matrix = malloc(len*sizeof(double));
-    for (size_t ix=0; ix < len; ++ix)
-    {
-        box_matrix[ix] = 0;
-    }
-    for (int ix = box_height / 2; ix >= box_height / 2 - 1 + (box_height % 2); --ix)
-        for (int jx = box_width / 2; jx >= box_width / 2 - 1 + (box_width % 2); --jx)
-            box_matrix[ix * box_width + jx] = central_value;
-    
-    
-    if (DEBUG)
-        print_matrix(box_matrix,box_height,box_width);
-
-    clEnqueueWriteBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
-
-    program = create_program(context);
-    
-    const size_t global[] = {box_height, box_width};
-    const size_t local[] = {20, 20};
-    char use_local =  (global[0] % local[0] == 0  || global[1] % local[1] == 0); // only use local size if global size is divisible by it
-
-    run_heat_step_iterations(global, local, use_local);
 
     /////////////////////////////////////////////////////////////
     cl_kernel kernel_sum = clCreateKernel(program, "sum", &error);
