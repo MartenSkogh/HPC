@@ -7,7 +7,7 @@
 #define DEBUG 0
 
 
-char *program_source = "__kernel void heat_step(__global restrict double * read, __global restrict double * write, double c)"
+char *program_source = "__kernel void heat_step(__global double * restrict read, __global double * restrict write, double c)"
     "{"
         "int ix = get_global_id(0); "
         "int jx = get_global_id(1); "
@@ -28,7 +28,7 @@ char *program_source = "__kernel void heat_step(__global restrict double * read,
         "if (matrix[pos] < 0)"
             "matrix[pos] *= -1; "
     "} \n"
-    "__kernel void sum(  __global restrict float* matrix, __local restrict float* scratch, __global int len, __global restrict float* result)"
+    "__kernel void sum(  __global float* restrict matrix, __local  float * restrict scratch, __global int len, __global float* restrict result)"
     "{"
         "int gsz = get_global_size(0); "
         "int gix = get_global_id(0); "
