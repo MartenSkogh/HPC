@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
         }
     }
     const size_t len = box_width * box_height;
-    
+
     cl_device_id device_id;
     cl_uint nmb_devices;
     if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1,
@@ -186,14 +186,25 @@ int main(int argc, char *argv[]) {
         tmp1 = matrix_buffer_write;
         matrix_buffer_write = matrix_buffer_read;
         matrix_buffer_read = tmp1;
+
         if (DEBUG)
         {
+            printf("Iteration %d read buffer: \n", i);
             clEnqueueReadBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
             if (error != CL_SUCCESS) {
                 printf("cannot read buffer 0\n");
                 return 1;
             }
             print_matrix(box_matrix, box_height, box_width);
+
+            printf("Iteration %d write buffer: \n", i);
+            clEnqueueReadBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+            if (error != CL_SUCCESS) {
+                printf("cannot read buffer 0\n");
+                return 1;
+            }
+            print_matrix(box_matrix, box_height, box_width);
+
         }
     }
 
