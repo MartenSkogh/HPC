@@ -30,7 +30,7 @@ char *program_source = "__kernel void heat_step(__global double * restrict read,
         "if (matrix[pos] < 0)"
             "matrix[pos] *= -1; "
     "} \n"
-    "__kernel void sum(__global double* restrict matrix, __local double * restrict scratch, __global int len, __global double* restrict result)"
+    "__kernel void sum(__global double* restrict matrix, __local double * restrict scratch, int len, __global double* restrict result)"
     "{"
         "int gsz = get_global_size(0); "
         "int gix = get_global_id(0); "
