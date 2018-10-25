@@ -120,12 +120,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     cl_mem matrix_buffer_read, matrix_buffer_write, tmp1;
-    matrix_buffer_read  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
-    matrix_buffer_write = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
+    matrix_buffer_read  = clCreateBuffer(context, CL_MEM_READ_WRITE, len * sizeof(double), NULL, NULL);
+    matrix_buffer_write = clCreateBuffer(context, CL_MEM_READ_WRITE, len * sizeof(double), NULL, NULL);
     
     // Allocate memory
-    double * box_matrix = malloc(box_height*box_width*sizeof(double));
-    for (size_t ix=0; ix < box_height*box_width; ++ix)
+    double * box_matrix = malloc(len*sizeof(double));
+    for (size_t ix=0; ix < len; ++ix)
     {
         box_matrix[ix] = 0;
     }
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
     if (DEBUG)
         print_matrix(box_matrix,box_height,box_width);
 
-    clEnqueueWriteBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, box_height*box_width*sizeof(double), box_matrix, 0, NULL, NULL);
+    clEnqueueWriteBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
 
     cl_program program = clCreateProgramWithSource(context, 1, (const char **) &program_source, NULL, &error);
     if (error != CL_SUCCESS) {
@@ -196,6 +196,7 @@ int main(int argc, char *argv[]) {
                 printf("cannot read buffer 0\n");
                 return 1;
             }
+            clFinish(command_queue);
             print_matrix(box_matrix, box_height, box_width);
 
             printf("Iteration %d write buffer: \n", i);
@@ -204,6 +205,7 @@ int main(int argc, char *argv[]) {
                 printf("cannot read buffer 0\n");
                 return 1;
             }
+            clFinish(command_queue);
             print_matrix(box_matrix, box_height, box_width);
         }
     }
