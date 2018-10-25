@@ -4,7 +4,7 @@
 #include <math.h>
 #include <CL/cl.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #define SUPERDEBUG 0
 
 
@@ -75,7 +75,8 @@ int main(int argc, char *argv[]) {
         printf( "cannot get platform\n" );
         return 1;           
     }
-    printf("Number of platforms: %d \n", (int)nmb_platforms);	
+    if (DEBUG)
+        printf("Number of platforms: %d \n", (int)nmb_platforms);	
     int box_height;
     int box_width;
     double central_value;
@@ -132,10 +133,10 @@ int main(int argc, char *argv[]) {
     {
         box_matrix[ix] = 0;
     }
+    size_t numPoints = (2-(box_height % 2))*(2-(box_width % 2));
     for (int ix = box_height / 2; ix >= box_height / 2 - 1 + (box_height % 2); --ix)
         for (int jx = box_width / 2; jx >= box_width / 2 - 1 + (box_width % 2); --jx)
-            box_matrix[ix * box_width + jx] = central_value;
-    
+            box_matrix[ix * box_width + jx] = central_value / numPoints;
     
     if (DEBUG)
         print_matrix(box_matrix,box_height,box_width);
@@ -312,7 +313,7 @@ int main(int argc, char *argv[]) {
     for (size_t ix=0; ix < nmb_groups; ++ix)
         absdiff_average += sum[ix] / len;
 
-    printf("average: %lf\n absdiff average: %lf\n", total_average, absdiff_average);
+    printf("average: %lf\naverage absolute difference: %lf\n", total_average, absdiff_average);
 
     return 0;
 }
