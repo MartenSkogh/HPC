@@ -7,15 +7,48 @@
 #define DEBUG 0
 
 
-char *kernel_program = "__kernel void heat_step(__global double * read, __global double * write, int width, int height, double c)"
+char *program_source = "__kernel void heat_step(__global restrict double * read, __global restrict double * write, double c)"
     "{"
-    "int ix = get_global_id(0); "
-    "int jx = get_global_id(1); "
-    "if (ix == 0 || ix == width || jx == 0 || jx == height) "
-        "return; "
-    "write[ix * width + jx] = read[ix * width + jx] + c * ( "
-        "(read[(ix+1) * width + jx] + read[(ix-1) * width + jx] + read[ix * width + jx + 1] + read[ix * width + jx - 1])/4"
-        " - read[ix * width + jx]); "
+        "int ix = get_global_id(0); "
+        "int jx = get_global_id(1); "
+        "int height = get_global_size(0); "
+        "int width = get_global_size(1); "
+        "double top = (ix == 0 ? 0.0 : read[(ix-1) * width + jx]; "
+        "double bot = (ix == height - 1) ? 0.0 : read[(ix+1) * width + jx]; "
+        "double left = (jx == 0) ? 0.0 : read[ix * width + jx - 1]; "
+        "double right = (jx == width - 1) ? 0.0 : read[ix * width + jx + 1]; "
+        "write[ix * width + jx] = (1.0 - c) * read[ix * width + jx] + c * (top + left + bot + right) / 4.0; "
+    "} \n"
+    "__kernel void abs_diff(__global restrict double * matrix, double subtractor)"
+    "{"
+        "int ix = get_global_id(0); "
+        "int jx = get_global_id(1); "
+        "int pos = ix * width + jx; "
+        "matrix[pos] = matrix[pos] - subtractor;"
+        "if (matrix[pos] < 0)"
+            "matrix[pos] *= -1; "
+    "} \n"
+    "__kernel void reduce(  __global restrict float* matrix, __local restrict float* scratch, __global int len, __global restrict float* result)"
+    "{"
+        "int gsz = get_global_size(0); "
+        "int gix = get_global_id(0); "
+        "int lsz = get_local_size(0); "
+        "int lix = get_local_id(0); "
+        "float acc = 0; "
+        "for (int cix = gix; cix < len; cix+=gsz) "
+            "acc += c[cix]; "
+
+        "scratch[lix] = acc;"
+        "barrier(CLK_LOCAL_MEM_FENCE);"
+
+        "for(int offset = lsz/2; offset>0; offset/=2) { "
+            "if (lix < offset) "
+                "scratch[lix] += scratch[lix+offset]; "
+            "barrier(CLK_LOCAL_MEM_FENCE); "
+        "}"
+
+        "if (lix == 0) "
+            "result[get_group_id(0)] = scratch[0]; "
     "}";
 
 
@@ -26,6 +59,7 @@ void print_matrix(double *vector, int height, int width){
     	printf("\n");
     }
 }
+
 
 int main(int argc, char *argv[]) {
     size_t i, j;     
@@ -86,33 +120,28 @@ int main(int argc, char *argv[]) {
         printf("cannot create queue\n");
         return 1;
     }
-    cl_mem box_matrix_1, box_matrix_2, tmp1;
-    box_matrix_1  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
-    box_matrix_2  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
+    cl_mem matrix_buffer_read, matrix_buffer_write, tmp1;
+    matrix_buffer_read  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
+    matrix_buffer_write = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
     
     // Allocate memory
-    double * a = malloc(box_height*box_width*sizeof(double));
-    double * b = malloc(box_height*box_width*sizeof(double));
-    double * tmp2 = malloc(box_height*box_width*sizeof(double));
+    double * box_matrix = malloc(box_height*box_width*sizeof(double));
     for (size_t ix=0; ix < box_height*box_width; ++ix)
     {
-        a[ix] = 0;
+        box_matrix[ix] = 0;
     }
     for (int ix = box_height / 2; ix >= box_height / 2 - 1 + (box_height % 2); --ix)
         for (int jx = box_width / 2; jx >= box_width / 2 - 1 + (box_width % 2); --jx)
-        {
-            a[ix * box_width + jx] = central_value;
-        }
+            box_matrix[ix * box_width + jx] = central_value;
     
     printf("3\n");
-    		
-    print_matrix(a,box_height,box_width);
 
-    // clEnqueueWriteBuffer(command_queue, input_buffer_b, CL_TRUE,
-    //     0, width_b*height_b*sizeof(double), b, 0, NULL, NULL);
-    
+    print_matrix(box_matrix,box_height,box_width);
+
+    clEnqueueWriteBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, box_height*box_width*sizeof(double), box_matrix, 0, NULL, NULL);
+
     printf("4\n");
-    cl_program program = clCreateProgramWithSource(context, 1, (const char **) &kernel_program, NULL, &error);
+    cl_program program = clCreateProgramWithSource(context, 1, (const char **) &program_source, NULL, &error);
     if (error != CL_SUCCESS) {
         printf("cannot create program\n");
         return 1;
@@ -131,56 +160,81 @@ int main(int argc, char *argv[]) {
             printf("could not allocate memory\n");
             return 1;
         }
-        clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG,
-            log_size, log, NULL);
+        clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
         printf( "%s\n", log );
         free(log);
         return 1;
     }
 
     printf("5\n");
-    cl_kernel kernel = clCreateKernel(program, "heat_step", &error);
+    cl_kernel heat_step_kernel = clCreateKernel(program, "heat_step", &error);
     if (error != CL_SUCCESS) {
         printf("cannot create kernel 0\n");
         return 1;
     }
-    
+
+    const size_t global[] = {box_height, box_width};
+    const size_t local[] = {20, 20};
+
+    clSetKernelArg(heat_step_kernel, 2, sizeof(double), &diff_const);
+
     for (i = 0; i < nbr_iterations; ++i) {    
-        clSetKernelArg(kernel, 0, sizeof(cl_mem), &box_matrix_1);
-        clSetKernelArg(kernel, 1, sizeof(cl_mem), &box_matrix_2);
-        clSetKernelArg(kernel, 2, sizeof(int), &box_width);
-        clSetKernelArg(kernel, 3, sizeof(int), &box_height);
-        clSetKernelArg(kernel, 4, sizeof(double), &diff_const);
-    
-        clEnqueueWriteBuffer(command_queue, box_matrix_1, CL_TRUE,
-            0, box_height*box_width*sizeof(double), a, 0, NULL, NULL);
-           
-        const size_t global[] = {box_height, box_width};
-        clEnqueueNDRangeKernel(command_queue, kernel, 2,
-            NULL, (const size_t *)&global, NULL, 0, NULL, NULL);
+        clSetKernelArg(heat_step_kernel, 0, sizeof(cl_mem), &matrix_buffer_read);
+        clSetKernelArg(heat_step_kernel, 1, sizeof(cl_mem), &matrix_buffer_write);
+
+        clEnqueueNDRangeKernel(command_queue, heat_step_kernel, 2, NULL, (const size_t *)&global, (const size_t *)&local, 0, NULL, NULL);
         if (error != CL_SUCCESS) {
             printf("cannot enque kernel 0\n");
             return 1;
         }
-
-        clEnqueueReadBuffer(command_queue, box_matrix_2, CL_TRUE,
-            0, box_height*box_width*sizeof(double), b, 0, NULL, NULL);
-        if (error != CL_SUCCESS) {
-            printf("cannot read buffer 0\n");
-            return 1;
+        if (i != nbr_iterations - 1)
+        {
+            tmp1 = matrix_buffer_write;
+            matrix_buffer_write = matrix_buffer_read;
+            matrix_buffer_read = tmp1;
         }
-    
-        tmp1 = box_matrix_2;
-        box_matrix_2 = box_matrix_1;
-        box_matrix_1 = tmp1;
-
-	tmp2 = a;
-	a = b;
-	b = tmp2;
-
     }
+
+    cl_kernel average_kernel = clCreateKernel(program, "average", &error);
+    if (error != CL_SUCCESS) {
+        printf("cannot create kernel reduce\n");
+        return 1;
+    }
+
+    const cl_int ix_m_int = (cl_int)ix_m;
+    clSetKernelArg(average_kernel, 0, sizeof(cl_mem), &output_buffer_c);
+    clSetKernelArg(average_kernel, 1, local_size*sizeof(cl_float), NULL);
+    clSetKernelArg(average_kernel, 2, sizeof(cl_int), &ix_m_int);
+    clSetKernelArg(average_kernel, 3, sizeof(cl_mem), &output_buffer_c_sum);
+
+    clEnqueueNDRangeKernel(command_queue, average_kernel, 1,
+        NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
+
+    double * sum = malloc(nmb_groups*sizeof(double));
+    clEnqueueReadBuffer(command_queue, output_buffer_c_sum, CL_TRUE,
+        0, nmb_groups*sizeof(double), c_sum, 0, NULL, NULL);
+
+    clFinish(command_queue);
+
+    double sum_total = 0;
+    for (size_t ix=0; ix < nmb_groups; ++ix)
+        c_sum_total += c_sum[ix];
     
-    print_matrix(b,box_height,box_width);
-    
+    cl_kernel absdiff_kernel = clCreateKernel(program, "abs_diff", &error);
+    if (error != CL_SUCCESS) {
+        printf("cannot create kernel absdiff \n");
+        return 1;
+    }
+
+    clSetKernelArg(absdiff_kernel, 0, sizeof(cl_mem), &matrix_buffer_write);
+    clSetKernelArg(absdiff_kernel, 0, sizeof(double), &sum_total);
+
+    clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, box_height*box_width*sizeof(double), box_matrix, 0, NULL, NULL);
+    if (error != CL_SUCCESS) {
+        printf("cannot read buffer 0\n");
+        return 1;
+    }
+    print_matrix(box_matrix, box_height, box_width);
+
     return 0;
 }
