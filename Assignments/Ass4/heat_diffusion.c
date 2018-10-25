@@ -95,6 +95,8 @@ int main(int argc, char *argv[]) {
              nbr_iterations = atoi(argv[i]+2);            
         }
     }
+    const size_t len = box_width * box_height;
+    
     cl_device_id device_id;
     cl_uint nmb_devices;
     if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1,
@@ -181,11 +183,17 @@ int main(int argc, char *argv[]) {
             printf("cannot enque kernel 0\n");
             return 1;
         }
-        if (i != nbr_iterations - 1)
+        tmp1 = matrix_buffer_write;
+        matrix_buffer_write = matrix_buffer_read;
+        matrix_buffer_read = tmp1;
+        if (DEBUG)
         {
-            tmp1 = matrix_buffer_write;
-            matrix_buffer_write = matrix_buffer_read;
-            matrix_buffer_read = tmp1;
+            clEnqueueReadBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+            if (error != CL_SUCCESS) {
+                printf("cannot read buffer 0\n");
+                return 1;
+            }
+            print_matrix(box_matrix, box_height, box_width);
         }
     }
 
@@ -198,7 +206,6 @@ int main(int argc, char *argv[]) {
     const size_t global_size = 1024;
     const size_t local_size = 32;
     const size_t nmb_groups = global_size / local_size;
-    const size_t len = box_width * box_height;
 
     cl_mem output_buffer_sum;
     output_buffer_sum  = clCreateBuffer(context, CL_MEM_READ_WRITE, nmb_groups * sizeof(cl_double), NULL, NULL);
@@ -227,7 +234,7 @@ int main(int argc, char *argv[]) {
 
     if (DEBUG)
     {
-        clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+        clEnqueueReadBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
         if (error != CL_SUCCESS) {
             printf("cannot read buffer 0\n");
             return 1;
@@ -236,13 +243,13 @@ int main(int argc, char *argv[]) {
     }
 
     // Subtract average from all values
-    clSetKernelArg(absdiff_kernel, 0, sizeof(cl_mem), &matrix_buffer_write);
+    clSetKernelArg(absdiff_kernel, 0, sizeof(cl_mem), &matrix_buffer_read);
     clSetKernelArg(absdiff_kernel, 1, sizeof(double), &total_average);
     clEnqueueNDRangeKernel(command_queue, absdiff_kernel, 2, NULL, (const size_t *)&global, (const size_t *)&local, 0, NULL, NULL);
 
     if (DEBUG)
     {
-        clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+        clEnqueueReadBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
         if (error != CL_SUCCESS) {
             printf("cannot read buffer 0\n");
             return 1;
@@ -258,16 +265,6 @@ int main(int argc, char *argv[]) {
         absdiff_average += sum[ix] / len;
 
     printf("average: %lf\n absdiff average: %lf\n", total_average, absdiff_average);
-
-    if (DEBUG)
-    {
-        clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
-        if (error != CL_SUCCESS) {
-            printf("cannot read buffer 0\n");
-            return 1;
-        }
-        print_matrix(box_matrix, box_height, box_width);
-    }
 
     return 0;
 }
