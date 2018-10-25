@@ -5,6 +5,7 @@
 #include <CL/cl.h>
 
 #define DEBUG 1
+#define SUPERDEBUG 0
 
 
 char *program_source = "__kernel void heat_step(__global double * restrict read, __global double * restrict write, double c)"
@@ -96,6 +97,8 @@ int main(int argc, char *argv[]) {
         }
     }
     const size_t len = box_width * box_height;
+    if (DEBUG)
+        printf("Running with c=%f \n", diff_const);
 
     cl_device_id device_id;
     cl_uint nmb_devices;
@@ -169,8 +172,31 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+
+    if (SUPERDEBUG)
+    {
+        printf("Pre iteration read buffer: \n", i);
+        clEnqueueReadBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+        if (error != CL_SUCCESS) {
+            printf("cannot read buffer 0\n");
+            return 1;
+        }
+        clFinish(command_queue);
+        print_matrix(box_matrix, box_height, box_width);
+
+        printf("Pre iteration write buffer: \n", i);
+        clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+        if (error != CL_SUCCESS) {
+            printf("cannot read buffer 0\n");
+            return 1;
+        }
+        clFinish(command_queue);
+        print_matrix(box_matrix, box_height, box_width);
+    }
+
     const size_t global[] = {box_height, box_width};
     const size_t local[] = {20, 20};
+    char use_local =  (global[0] % local[0] == 0  || global[1] % local[1] == 0); // only use local size if global size is divisible by it
 
     clSetKernelArg(heat_step_kernel, 2, sizeof(double), &diff_const);
 
@@ -178,17 +204,17 @@ int main(int argc, char *argv[]) {
         clSetKernelArg(heat_step_kernel, 0, sizeof(cl_mem), &matrix_buffer_read);
         clSetKernelArg(heat_step_kernel, 1, sizeof(cl_mem), &matrix_buffer_write);
 
-        clEnqueueNDRangeKernel(command_queue, heat_step_kernel, 2, NULL, (const size_t *)&global, (const size_t *)&local, 0, NULL, NULL);
+        error = clEnqueueNDRangeKernel(command_queue, heat_step_kernel, 2, NULL, (const size_t *)&global, use_local ? (const size_t *)&local : NULL, 0, NULL, NULL);
         if (error != CL_SUCCESS) {
             printf("cannot enque kernel 0\n");
             return 1;
         }
-        clFinish(command_queue);
+
         tmp1 = matrix_buffer_write;
         matrix_buffer_write = matrix_buffer_read;
         matrix_buffer_read = tmp1;
 
-        if (DEBUG)
+        if (SUPERDEBUG)
         {
             printf("Iteration %d read buffer: \n", i);
             clEnqueueReadBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
@@ -196,20 +222,19 @@ int main(int argc, char *argv[]) {
                 printf("cannot read buffer 0\n");
                 return 1;
             }
-            clFinish(command_queue);
             print_matrix(box_matrix, box_height, box_width);
 
             printf("Iteration %d write buffer: \n", i);
-            clEnqueueReadBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+            clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
             if (error != CL_SUCCESS) {
                 printf("cannot read buffer 0\n");
                 return 1;
             }
-            clFinish(command_queue);
             print_matrix(box_matrix, box_height, box_width);
         }
     }
 
+    /////////////////////////////////////////////////////////////
     cl_kernel kernel_sum = clCreateKernel(program, "sum", &error);
     if (error != CL_SUCCESS) {
         printf("cannot create kernel average\n");
@@ -222,23 +247,25 @@ int main(int argc, char *argv[]) {
 
     cl_mem output_buffer_sum;
     output_buffer_sum  = clCreateBuffer(context, CL_MEM_READ_WRITE, nmb_groups * sizeof(cl_double), NULL, NULL);
+    double * sum = malloc(nmb_groups*sizeof(double));
 
-    clSetKernelArg(kernel_sum, 0, sizeof(cl_mem), &matrix_buffer_write);
+    clSetKernelArg(kernel_sum, 0, sizeof(cl_mem), &matrix_buffer_read);
     clSetKernelArg(kernel_sum, 1, local_size*sizeof(cl_double), NULL);
     clSetKernelArg(kernel_sum, 2, sizeof(cl_int), &len);
     clSetKernelArg(kernel_sum, 3, sizeof(cl_mem), &output_buffer_sum);
+    error = clEnqueueNDRangeKernel(command_queue, kernel_sum, 1, NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
+    if (error != CL_SUCCESS) {
+        printf("cannot enque kernel sum\n");
+        return 1;
+    }
 
-    clEnqueueNDRangeKernel(command_queue, kernel_sum, 1, NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
-
-    double * sum = malloc(nmb_groups*sizeof(double));
     clEnqueueReadBuffer(command_queue, output_buffer_sum, CL_TRUE, 0, nmb_groups*sizeof(double), sum, 0, NULL, NULL);
-
-    clFinish(command_queue);
 
     double total_average = 0;
     for (size_t ix=0; ix < nmb_groups; ++ix)
         total_average += sum[ix] / len;
 
+    ////////////////////////////////////////////////////////////////////
     cl_kernel absdiff_kernel = clCreateKernel(program, "absdiff", &error);
     if (error != CL_SUCCESS) {
         printf("cannot create kernel absdiff \n");
@@ -254,11 +281,14 @@ int main(int argc, char *argv[]) {
         }
         print_matrix(box_matrix, box_height, box_width);
     }
-
     // Subtract average from all values
     clSetKernelArg(absdiff_kernel, 0, sizeof(cl_mem), &matrix_buffer_read);
     clSetKernelArg(absdiff_kernel, 1, sizeof(double), &total_average);
-    clEnqueueNDRangeKernel(command_queue, absdiff_kernel, 2, NULL, (const size_t *)&global, (const size_t *)&local, 0, NULL, NULL);
+    error = clEnqueueNDRangeKernel(command_queue, absdiff_kernel, 2, NULL, (const size_t *)&global, use_local ? (const size_t *)&local : NULL, 0, NULL, NULL);
+    if (error != CL_SUCCESS) {
+        printf("cannot enque kernel sum\n");
+        return 1;
+    }
 
     if (DEBUG)
     {
@@ -270,8 +300,13 @@ int main(int argc, char *argv[]) {
         print_matrix(box_matrix, box_height, box_width);
     }
 
+    /////////////////////////////////////////////////////////////////////////
     // Calculate new average
-    clEnqueueNDRangeKernel(command_queue, kernel_sum, 1, NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
+    error = clEnqueueNDRangeKernel(command_queue, kernel_sum, 1, NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
+    if (error != CL_SUCCESS) {
+        printf("cannot enque kernel sum\n");
+        return 1;
+    }
     clEnqueueReadBuffer(command_queue, output_buffer_sum, CL_TRUE, 0, nmb_groups*sizeof(double), sum, 0, NULL, NULL);
     double absdiff_average = 0;
     for (size_t ix=0; ix < nmb_groups; ++ix)
