@@ -313,7 +313,7 @@ int main(int argc, char *argv[]) {
     for (size_t ix=0; ix < nmb_groups; ++ix)
         absdiff_average += sum[ix] / len;
 
-    printf("average: %lf\naverage absolute difference: %lf\n", total_average, absdiff_average);
+    printf("average: %.0lf\naverage absolute difference: %.0lf\n", total_average, absdiff_average);
 
     return 0;
 }
