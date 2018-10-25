@@ -183,6 +183,7 @@ int main(int argc, char *argv[]) {
             printf("cannot enque kernel 0\n");
             return 1;
         }
+        clFinish(command_queue);
         tmp1 = matrix_buffer_write;
         matrix_buffer_write = matrix_buffer_read;
         matrix_buffer_read = tmp1;
@@ -204,7 +205,6 @@ int main(int argc, char *argv[]) {
                 return 1;
             }
             print_matrix(box_matrix, box_height, box_width);
-
         }
     }
 
