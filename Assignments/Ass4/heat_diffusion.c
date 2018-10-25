@@ -28,7 +28,7 @@ char *program_source = "__kernel void heat_step(__global restrict double * read,
         "if (matrix[pos] < 0)"
             "matrix[pos] *= -1; "
     "} \n"
-    "__kernel void reduce(  __global restrict float* matrix, __local restrict float* scratch, __global int len, __global restrict float* result)"
+    "__kernel void sum(  __global restrict float* matrix, __local restrict float* scratch, __global int len, __global restrict float* result)"
     "{"
         "int gsz = get_global_size(0); "
         "int gix = get_global_id(0); "
@@ -78,8 +78,8 @@ int main(int argc, char *argv[]) {
     double diff_const;
     int nbr_iterations;
     // Parse command line arguments
-    box_width = atoi(argv[1]) + 2; // Add boundaries
-    box_height = atoi(argv[2]) + 2;
+    box_width = atoi(argv[1]);
+    box_height = atoi(argv[2]);
     for ( i = 3; i < argc; ++i) {
         if (strncmp(argv[i],"-i",2) == 0) {
             central_value = atof(argv[i]+2);
@@ -195,49 +195,60 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    cl_kernel average_kernel = clCreateKernel(program, "reduce", &error);
+    cl_kernel kernel_sum = clCreateKernel(program, "sum", &error);
     if (error != CL_SUCCESS) {
-        printf("cannot create kernel reduce\n");
+        printf("cannot create kernel average\n");
         return 1;
     }
 
-    cl_mem output_buffer_c, output_buffer_c_sum;
-    output_buffer_c = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
-    output_buffer_c_sum  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
-    const cl_int ix_m_int;// = (cl_int)ix_m;
-    clSetKernelArg(average_kernel, 0, sizeof(cl_mem), &output_buffer_c);
-    clSetKernelArg(average_kernel, 1, local_size*sizeof(cl_float), NULL);
-    clSetKernelArg(average_kernel, 2, sizeof(cl_int), &ix_m_int);
-    clSetKernelArg(average_kernel, 3, sizeof(cl_mem), &output_buffer_c_sum);
+    const size_t global_size = 1024;
+    const size_t local_size = 32;
+    const size_t nmb_groups = global_size / local_size;
+    const size_t len = box_width * box_height;
 
-    clEnqueueNDRangeKernel(command_queue, average_kernel, 1,
-        NULL, (const size_t *)&global_size, (const size_t *)&local, 0, NULL, NULL);
+    cl_mem output_buffer_c_sum;
+    output_buffer_sum  = clCreateBuffer(context, CL_MEM_READ_WRITE, nmb_groups * sizeof(cl_double), NULL, NULL);
+
+    clSetKernelArg(kernel_sum, 0, sizeof(cl_mem), &matrix_buffer_write);
+    clSetKernelArg(kernel_sum, 1, local_size*sizeof(cl_double), NULL);
+    clSetKernelArg(kernel_sum, 2, sizeof(cl_int), &len);
+    clSetKernelArg(kernel_sum, 3, sizeof(cl_mem), &output_buffer_sum);
+
+    clEnqueueNDRangeKernel(command_queue, kernel_sum, 1, NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
 
     double * sum = malloc(nmb_groups*sizeof(double));
-    clEnqueueReadBuffer(command_queue, output_buffer_c_sum, CL_TRUE,
-        0, nmb_groups*sizeof(double), c_sum, 0, NULL, NULL);
+    clEnqueueReadBuffer(command_queue, output_buffer_c_sum, CL_TRUE, 0, nmb_groups*sizeof(double), c_sum, 0, NULL, NULL);
 
     clFinish(command_queue);
 
-    double sum_total = 0;
+    double total_average = 0;
     for (size_t ix=0; ix < nmb_groups; ++ix)
-        c_sum_total += c_sum[ix];
-    
+        total_average += sum[ix] / len;
+
     cl_kernel absdiff_kernel = clCreateKernel(program, "abs_diff", &error);
     if (error != CL_SUCCESS) {
         printf("cannot create kernel absdiff \n");
         return 1;
     }
 
+    // Subtract average from all values
     clSetKernelArg(absdiff_kernel, 0, sizeof(cl_mem), &matrix_buffer_write);
-    clSetKernelArg(absdiff_kernel, 0, sizeof(double), &sum_total);
+    clSetKernelArg(absdiff_kernel, 1, sizeof(double), &total_average);
+    clEnqueueNDRangeKernel(command_queue, absdiff_kernel, 2, NULL, (const size_t *)&global, (const size_t *)&local, 0, NULL, NULL);
 
-    clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, box_height*box_width*sizeof(double), box_matrix, 0, NULL, NULL);
-    if (error != CL_SUCCESS) {
-        printf("cannot read buffer 0\n");
-        return 1;
-    }
-    print_matrix(box_matrix, box_height, box_width);
+    // Calculate new average
+    clEnqueueNDRangeKernel(command_queue, kernel_sum, 1, NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
+    clEnqueueReadBuffer(command_queue, output_buffer_c_sum, CL_TRUE, 0, nmb_groups*sizeof(double), c_sum, 0, NULL, NULL);
+    double absdiff_average = 0;
+    for (size_t ix=0; ix < nmb_groups; ++ix)
+        absdiff_average += sum[ix] / len;
+
+    // clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+    // if (error != CL_SUCCESS) {
+    //     printf("cannot read buffer 0\n");
+    //     return 1;
+    // }
+    // print_matrix(box_matrix, box_height, box_width);
 
     return 0;
 }
