@@ -23,6 +23,8 @@ char *program_source = "__kernel void heat_step(__global double * restrict read,
     "{"
         "int ix = get_global_id(0); "
         "int jx = get_global_id(1); "
+        "int height = get_global_size(0); "
+        "int width = get_global_size(1); "
         "int pos = ix * width + jx; "
         "matrix[pos] = matrix[pos] - subtractor;"
         "if (matrix[pos] < 0)"
@@ -36,7 +38,7 @@ char *program_source = "__kernel void heat_step(__global double * restrict read,
         "int lix = get_local_id(0); "
         "double acc = 0; "
         "for (int cix = gix; cix < len; cix+=gsz) "
-            "acc += c[cix]; "
+            "acc += matrix[cix]; "
 
         "scratch[lix] = acc;"
         "barrier(CLK_LOCAL_MEM_FENCE);"
