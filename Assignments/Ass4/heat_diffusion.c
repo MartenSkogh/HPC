@@ -60,6 +60,7 @@ void print_matrix(double *vector, int height, int width){
 	    printf("%.2e ",vector[i*width+j]);
     	printf("\n");
     }
+    printf("\n");
 }
 
 
