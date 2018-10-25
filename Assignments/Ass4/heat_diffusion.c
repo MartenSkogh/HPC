@@ -4,7 +4,7 @@
 #include <math.h>
 #include <CL/cl.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 
 char *program_source = "__kernel void heat_step(__global double * restrict read, __global double * restrict write, double c)"
@@ -94,7 +94,6 @@ int main(int argc, char *argv[]) {
              nbr_iterations = atoi(argv[i]+2);            
         }
     }
-    printf("1\n");
     cl_device_id device_id;
     cl_uint nmb_devices;
     if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1,
@@ -104,18 +103,13 @@ int main(int argc, char *argv[]) {
     }
 
     cl_context context;
-    cl_context_properties properties[] =
-    {
-    CL_CONTEXT_PLATFORM,
-    (cl_context_properties) platform_id,
-    0
-    };
+    cl_context_properties properties[] = {CL_CONTEXT_PLATFORM, (cl_context_properties) platform_id, 0};
     context = clCreateContext(properties, 1, &device_id, NULL, NULL, &error);    
     if (error != CL_SUCCESS) {
         printf("cannot create context\n");
         return 1;
     }
-    printf("2\n");
+
     cl_command_queue command_queue;
     command_queue = clCreateCommandQueue(context, device_id, 0, &error);
     if (error != CL_SUCCESS) {
@@ -136,20 +130,18 @@ int main(int argc, char *argv[]) {
         for (int jx = box_width / 2; jx >= box_width / 2 - 1 + (box_width % 2); --jx)
             box_matrix[ix * box_width + jx] = central_value;
     
-    printf("3\n");
-
-    print_matrix(box_matrix,box_height,box_width);
+    
+    if (DEBUG)
+        print_matrix(box_matrix,box_height,box_width);
 
     clEnqueueWriteBuffer(command_queue, matrix_buffer_read, CL_TRUE, 0, box_height*box_width*sizeof(double), box_matrix, 0, NULL, NULL);
 
-    printf("4\n");
     cl_program program = clCreateProgramWithSource(context, 1, (const char **) &program_source, NULL, &error);
     if (error != CL_SUCCESS) {
         printf("cannot create program\n");
         return 1;
     }
 
-    printf("4.2\n");
     error = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (error != CL_SUCCESS) {
         printf("cannot build program. log:\n");
@@ -168,7 +160,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    printf("5\n");
     cl_kernel heat_step_kernel = clCreateKernel(program, "heat_step", &error);
     if (error != CL_SUCCESS) {
         printf("cannot create kernel 0\n");
@@ -233,10 +224,30 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    if (DEBUG)
+    {
+        clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+        if (error != CL_SUCCESS) {
+            printf("cannot read buffer 0\n");
+            return 1;
+        }
+        print_matrix(box_matrix, box_height, box_width);
+    }
+
     // Subtract average from all values
     clSetKernelArg(absdiff_kernel, 0, sizeof(cl_mem), &matrix_buffer_write);
     clSetKernelArg(absdiff_kernel, 1, sizeof(double), &total_average);
     clEnqueueNDRangeKernel(command_queue, absdiff_kernel, 2, NULL, (const size_t *)&global, (const size_t *)&local, 0, NULL, NULL);
+
+    if (DEBUG)
+    {
+        clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+        if (error != CL_SUCCESS) {
+            printf("cannot read buffer 0\n");
+            return 1;
+        }
+        print_matrix(box_matrix, box_height, box_width);
+    }
 
     // Calculate new average
     clEnqueueNDRangeKernel(command_queue, kernel_sum, 1, NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
@@ -247,13 +258,15 @@ int main(int argc, char *argv[]) {
 
     printf("average: %lf\n absdiff average: %lf\n", total_average, absdiff_average);
 
-
-    // clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
-    // if (error != CL_SUCCESS) {
-    //     printf("cannot read buffer 0\n");
-    //     return 1;
-    // }
-    // print_matrix(box_matrix, box_height, box_width);
+    if (DEBUG)
+    {
+        clEnqueueReadBuffer(command_queue, matrix_buffer_write, CL_TRUE, 0, len*sizeof(double), box_matrix, 0, NULL, NULL);
+        if (error != CL_SUCCESS) {
+            printf("cannot read buffer 0\n");
+            return 1;
+        }
+        print_matrix(box_matrix, box_height, box_width);
+    }
 
     return 0;
 }
