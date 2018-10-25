@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
     }
 
     const size_t global[] = {box_height, box_width};
-    const size_t local[] = {20, 20};
+    const size_t local[] = {50, 50};
     char use_local =  (global[0] % local[0] == 0  || global[1] % local[1] == 0); // only use local size if global size is divisible by it
 
     clSetKernelArg(heat_step_kernel, 2, sizeof(double), &diff_const);
