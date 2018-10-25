@@ -195,20 +195,23 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    cl_kernel average_kernel = clCreateKernel(program, "average", &error);
+    cl_kernel average_kernel = clCreateKernel(program, "reduce", &error);
     if (error != CL_SUCCESS) {
         printf("cannot create kernel reduce\n");
         return 1;
     }
 
-    const cl_int ix_m_int = (cl_int)ix_m;
+    cl_mem output_buffer_c, output_buffer_c_sum;
+    output_buffer_c = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
+    output_buffer_c_sum  = clCreateBuffer(context, CL_MEM_READ_WRITE, box_height * box_width * sizeof(double), NULL, NULL);
+    const cl_int ix_m_int;// = (cl_int)ix_m;
     clSetKernelArg(average_kernel, 0, sizeof(cl_mem), &output_buffer_c);
     clSetKernelArg(average_kernel, 1, local_size*sizeof(cl_float), NULL);
     clSetKernelArg(average_kernel, 2, sizeof(cl_int), &ix_m_int);
     clSetKernelArg(average_kernel, 3, sizeof(cl_mem), &output_buffer_c_sum);
 
     clEnqueueNDRangeKernel(command_queue, average_kernel, 1,
-        NULL, (const size_t *)&global_size, (const size_t *)&local_size, 0, NULL, NULL);
+        NULL, (const size_t *)&global_size, (const size_t *)&local, 0, NULL, NULL);
 
     double * sum = malloc(nmb_groups*sizeof(double));
     clEnqueueReadBuffer(command_queue, output_buffer_c_sum, CL_TRUE,
