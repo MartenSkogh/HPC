@@ -13,13 +13,13 @@ char *program_source = "__kernel void heat_step(__global double * restrict read,
         "int jx = get_global_id(1); "
         "int height = get_global_size(0); "
         "int width = get_global_size(1); "
-        "double top = (ix == 0 ? 0.0 : read[(ix-1) * width + jx]; "
+        "double top = (ix == 0) ? 0.0 : read[(ix-1) * width + jx]; "
         "double bot = (ix == height - 1) ? 0.0 : read[(ix+1) * width + jx]; "
         "double left = (jx == 0) ? 0.0 : read[ix * width + jx - 1]; "
         "double right = (jx == width - 1) ? 0.0 : read[ix * width + jx + 1]; "
         "write[ix * width + jx] = (1.0 - c) * read[ix * width + jx] + c * (top + left + bot + right) / 4.0; "
     "} \n"
-    "__kernel void abs_diff(__global restrict double * matrix, double subtractor)"
+    "__kernel void absdiff(__global double * restrict matrix, double subtractor)"
     "{"
         "int ix = get_global_id(0); "
         "int jx = get_global_id(1); "
@@ -28,13 +28,13 @@ char *program_source = "__kernel void heat_step(__global double * restrict read,
         "if (matrix[pos] < 0)"
             "matrix[pos] *= -1; "
     "} \n"
-    "__kernel void sum(  __global float* restrict matrix, __local  float * restrict scratch, __global int len, __global float* restrict result)"
+    "__kernel void sum(__global double* restrict matrix, __local double * restrict scratch, __global int len, __global double* restrict result)"
     "{"
         "int gsz = get_global_size(0); "
         "int gix = get_global_id(0); "
         "int lsz = get_local_size(0); "
         "int lix = get_local_id(0); "
-        "float acc = 0; "
+        "double acc = 0; "
         "for (int cix = gix; cix < len; cix+=gsz) "
             "acc += c[cix]; "
 
@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
     for (size_t ix=0; ix < nmb_groups; ++ix)
         total_average += sum[ix] / len;
 
-    cl_kernel absdiff_kernel = clCreateKernel(program, "abs_diff", &error);
+    cl_kernel absdiff_kernel = clCreateKernel(program, "absdiff", &error);
     if (error != CL_SUCCESS) {
         printf("cannot create kernel absdiff \n");
         return 1;
