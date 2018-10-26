@@ -24,11 +24,11 @@ All code is written in the file heat\_diffusion.c. The program flow is as follow
 2. Find the GPU device ID, create context and command queue.
 3. Allocate matrix and create buffers for the diffusion. 
 4. Build CL-program and create kernel for diffusion.
-5. For every iteration, set the read and write buffer arguements of the diffusion kernel and enqueue the kernel.
-6. Create and enqueue the sumation kernel.
-7. Calculate the average temperature. 
-8. Create and enqueue the kernel for average absoute difference.
-9. Calculate the average absolute difference.
+5. For every iteration, set the read and write buffer arguements of the diffusion kernel and enqueue the diffusion kernel.
+6. Create and enqueue the summation kernel.
+7. Calculate the average temperature by summing the result vector from the previous step and dividing with the number of elements. 
+8. Create and enqueue the kernel for average absolute difference with the value computed in step 7.
+9. Calculate the average absolute difference as in step 7 but on thematrix updated with absolute differences.
 
 ### Output
 
@@ -49,8 +49,8 @@ The only files that are required to compile the program are:
 The kernels used by the program are described here.
 
 1. `__kernel void heat_step(__global double * restrict read, __global double * restrict write, double c)`: Performes a diffusion step for an element i the 2D space. The previous values are reead from `read` and written to `write`. The kernel gets indices via `get_global_id`. `c` is the diffusion constant.
-2. `__kernel void sum(__global double* restrict matrix, __local double * restrict scratch, int len, __global double* restrict result)`: Calculates part of the sum of all elements in the 2D matrix. A memory barrier is used with the code `barrier(CLK_LOCAL_MEM_FENCE);` to make sure...
-3. `__kernel void absdiff(__global double * restrict matrix, double subtractor)`: Calculates an element of the matrix with all absolute differences. The current position is calculated using `get_global_id`, the differens is calculated by substracting the average, `substractor` and the absolute value of the differens is taken. 
+2. `__kernel void sum(__global double* restrict matrix, __local double * restrict scratch, int len, __global double* restrict result)`: Reduces a vector of length 'len' to a shorter vector with partial sums. The length of this shorter vector is determined by the number of work groups (the quota between global size and local size). The complete sum can be calculated on the CPU by adding together all elements of 'result'. During the reduction, a memory barrier is used with the code `barrier(CLK_LOCAL_MEM_FENCE);` to handle synchronization within the local group. 
+3. `__kernel void absdiff(__global double * restrict matrix, double subtractor)`: Calculates an element of the matrix of all absolute differences. The current position is calculated using `get_global_id`, the difference is calculated by substracting the average, `substractor`, and the absolute value of the difference is stored. 
 
 ## Results
 Here, the output results and timing results are presented for different input arguments. The benchmarking is done by running several times and taking the average runtime. For the size 10000*10000, the program was run 5 times and for the others it was run 100 times. 
@@ -65,3 +65,5 @@ Here, the output results and timing results are presented for different input ar
 
 All runtimes are below the maximum runtimes defined in the assignment.
 
+## Performance comments 
+local size 50 50 dont work on big shit
