@@ -66,5 +66,5 @@ Here, the output results and timing results are presented for different input ar
 All runtimes are below the maximum runtimes defined in the assignment.
 
 ## Performance comments 
-Two changes were nescessary in order to make the program run fast enough. The first thing was to use `restrict`. The second thing was to set an appropriate local size. Setting the local size in a quadratic fashion to `{25, 25}` had a huge impact on performance. It was also noted that the program was not able to enqueue the kernel for some larger local sizes like for instance `{50, 50}` for the cases with w*h = 10000*10000 and w*h = 100000*100. We do not know the reason for this. 
+Two changes were nescessary in order to make the program run fast enough. The first thing was to use `restrict`. The second thing was to set an appropriate local size. Setting the local size in a quadratic fashion to `{25, 25}` had a huge impact on performance. It was also noted that the program was not able to enqueue the kernel for some larger local sizes like for instance `{50, 50}` for the cases with w\*h = 10000\*10000 and w\*h = 100000\*100. We do not know the reason for this. 
 
