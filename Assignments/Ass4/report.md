@@ -45,9 +45,12 @@ The only files that are required to compile the program are:
  4. `math.h` - for mathimatical functions.
  5. `cl/CL.h` - to use OpenCL. 
  
-### Functions
+### Kernels
+The kernels used by the program are described here.
 
-### Parallelization 
+1. `__kernel void heat_step(__global double * restrict read, __global double * restrict write, double c)`: Performes a diffusion step for an element i the 2D space. The previous values are reead from `read` and written to `write`. The kernel gets indices via `get_global_id`. `c` is the diffusion constant.
+2. `__kernel void sum(__global double* restrict matrix, __local double * restrict scratch, int len, __global double* restrict result)`: Calculates part of the sum of all elements in the 2D matrix. A memory barrier is used with the code `barrier(CLK_LOCAL_MEM_FENCE);` to make sure...
+3. `__kernel void absdiff(__global double * restrict matrix, double subtractor)`: Calculates an element of the matrix with all absolute differences. The current position is calculated using `get_global_id`, the differens is calculated by substracting the average, `substractor` and the absolute value of the differens is taken. 
 
 ## Results
 Here, the output results and timing results are presented for different input arguments. The benchmarking is done by running several times and taking the average runtime. For the size 10000*10000, the program was run 5 times and for the others it was run 100 times. 
