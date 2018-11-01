@@ -63,13 +63,13 @@ In addition to our `main` function, several other functions are used. These are 
 ## Results
 The following results were obtained by running the program on gantenbein on the ssd multiple times and taking the average. The reason for using the ssd was that writing to the home directory was highly unreliable with the time varying by at least a factor of 10 between runs. This could have been due to a high number of concurrent users. 
 
-`$ ./newton -l{L} -t10 7`
+`$ ./newton -l{L} -t10 7`  
 | L     |  Time     |
 |------:|:---------:|
 |1000   | 0.077s  |
 |50000  | 158.516s |
 
-`$ ./newton -l1000 -t{N} 5`
+`$ ./newton -l1000 -t{N} 5`  
 | N     |  Time     |
 |------:|:---------:|
 |1      | 0.239s  |
@@ -77,7 +77,7 @@ The following results were obtained by running the program on gantenbein on the 
 |3      | 0.089s  |
 |4      | 0.075s  |
 
-`./newton -l1000 -t1 {D}`
+`./newton -l1000 -t1 {D}`  
 | D     |  Time     |
 |------:|:---------:|
 |1      | 0.072s  | 
